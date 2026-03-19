@@ -30,7 +30,11 @@ El documento está estructurado como un flujo de trabajo completo:
 
 Usa el dataset `Auto` del paquete `ISLR2` (392 automóviles, 1970–1982) con el modelo `mpg ~ weight + year + origin`.
 
-## Requisitos
+## Configuración del entorno
+
+Para tener R, Quarto y las herramientas necesarias correctamente instaladas y configuradas, se recomienda seguir la guía de configuración de entorno de desarrollo: [https://paulovillarroel.github.io/configuracion-entorno/](https://paulovillarroel.github.io/configuracion-entorno/)
+
+### Requisitos mínimos
 
 - [R](https://cran.r-project.org/) (>= 4.1)
 - [Quarto](https://quarto.org/docs/get-started/) (>= 1.3)
