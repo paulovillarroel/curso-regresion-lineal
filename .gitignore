@@ -1,6 +1,7 @@
 # Quarto output
 *.html
 *_files/
+_site/
 
 # R artifacts
 .Rhistory
@@ -9,3 +10,6 @@
 
 # OS
 .DS_Store
+
+/.quarto/
+**/*.quarto_ipynb

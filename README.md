@@ -24,11 +24,9 @@ El documento está estructurado como un flujo de trabajo completo:
 - `diagnostico_ols(mod)` — ejecuta todos los tests, imprime semáforo de resultados, retorna dataframe resumen y objetos de cada test.
 - `plot_diagnostico_ols(mod)` — panel 2x2 con residuos vs fitted, QQ-plot, leverage y Cook's distance.
 
-**Re-especificación antes vs después** — comparación de un modelo lineal mal especificado contra versiones corregidas (cuadrático centrado y log-log), con tabla comparativa de diagnósticos y selección formal por AIC corregido.
-
 ## Dataset
 
-Usa el dataset `Auto` del paquete `ISLR2` (392 automóviles, 1970–1982) con el modelo `mpg ~ weight + year + origin`.
+Usa el dataset `Auto` del paquete `ISLR2` (392 automóviles, 1970–1982).
 
 ## Configuración del entorno
 
