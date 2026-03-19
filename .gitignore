@@ -1,0 +1,11 @@
+# Quarto output
+*.html
+*_files/
+
+# R artifacts
+.Rhistory
+.RData
+.Rproj.user/
+
+# OS
+.DS_Store
