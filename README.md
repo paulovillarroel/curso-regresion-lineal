@@ -69,7 +69,7 @@ open supuestos_regresion_lineal.html   # macOS
 xdg-open supuestos_regresion_lineal.html  # Linux
 ```
 
-También puedes abrir `supuestos_regresion_lineal.qmd` directamente en RStudio o VS Code (con la extensión de Quarto) y renderizar desde ahí.
+También puedes abrir `supuestos_regresion_lineal.qmd` directamente en tu IDE y renderizar desde ahí. IDE recomendado: [Positron](https://positron.posit.co/) — el nuevo IDE de Posit diseñado para ciencia de datos con soporte nativo para R, Python y Quarto. También funciona con RStudio o VS Code (con la extensión de Quarto).
 
 ## Licencia
 
