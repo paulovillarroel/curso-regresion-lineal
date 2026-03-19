@@ -37,7 +37,7 @@ Para tener R, Quarto y las herramientas necesarias correctamente instaladas y co
 ### Requisitos mínimos
 
 - [R](https://cran.r-project.org/) (>= 4.1)
-- [Quarto](https://quarto.org/docs/get-started/) (>= 1.3)
+- [Quarto CLI](https://github.com/quarto-dev/quarto-cli) (>= 1.3) — necesario para renderizar el documento desde terminal. [Instrucciones de instalación](https://quarto.org/docs/get-started/)
 
 ### Paquetes de R
 
