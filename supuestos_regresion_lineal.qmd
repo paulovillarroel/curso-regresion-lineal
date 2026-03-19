@@ -486,6 +486,8 @@ El diagnóstico de supuestos no es una checklist que se recorre en cualquier ord
 5. **Multicolinealidad** — Afecta la interpretación de coeficientes individuales, no la validez global del modelo.
 6. **Normalidad** — Al final, porque es el supuesto menos crítico con $n$ grande (TCL).
 
+Nótese que la **endogeneidad** — la violación más grave (ver @sec-por-que) — no aparece en esta lista porque **no tiene un test de diagnóstico estándar** basado en residuos. Su detección requiere razonamiento teórico sobre el proceso generador de datos: ¿hay variables omitidas correlacionadas con los predictores? ¿Existe simultaneidad? Si la respuesta es sí, ningún diagnóstico de residuos lo revelará [@wooldridge2020, Cap. 3].
+
 ::: {.callout-tip}
 ## ¿Por qué este orden?
 Los problemas de las primeras etapas pueden enmascarar los de las siguientes. Por ejemplo, un outlier puede crear heterocedasticidad aparente, o una forma funcional incorrecta puede producir residuos no normales. Diagnosticar de arriba hacia abajo evita perseguir problemas que son síntomas de otro más fundamental.
@@ -626,7 +628,7 @@ jarque.bera.test(residuos)
 | Aspecto | Detalle |
 |---|---|
 | Base teórica | Asintótico: estadístico $\chi^2$ con 2 g.l. |
-| Requisito | $n$ grande ($\sim$30+) para ser confiable |
+| Requisito | $n \geq 30$ para ser confiable |
 | Normalidad implica | Skewness $\approx 0$ y kurtosis $\approx 3$ |
 | Limitación | No recomendado para muestras pequeñas |
 
@@ -884,6 +886,14 @@ bgtest(modelo, order = 4) # útil para datos trimestrales
 
 **Referencias:** @breusch1978; @godfrey1978.
 
+::: {.callout-warning}
+## Interpretación en el dataset Auto
+
+El dataset `Auto` está ordenado por año de fabricación (1970–1982), un período con cambios estructurales importantes: regulaciones CAFE de eficiencia, crisis del petróleo de 1973 y 1979, y cambios tecnológicos en motores. El DW bajo (~1.27) y el BG significativo probablemente reflejan **tendencias temporales no modeladas**, no autocorrelación serial clásica.
+
+Incluir `year` como predictor lineal captura la tendencia general, pero no los cambios discretos (un shock petrolero no es lineal). La "autocorrelación" detectada puede ser un síntoma de **variables omitidas con estructura temporal** — es decir, hay factores que cambian a lo largo del tiempo y que el modelo no incluye. Posibles soluciones serían variables dummy para períodos regulatorios o splines en `year`, aunque para los fines de este ejercicio basta con reconocer esta limitación.
+:::
+
 ### Diagnóstico visual
 
 ```{r}
@@ -997,6 +1007,29 @@ cat(
   "\n"
 )
 ```
+
+::: {.callout-warning}
+## ¿Por qué el CN es tan alto si los VIF son bajos?
+
+Si el CN resulta muy elevado (e.g., > 1000) pero todos los VIF son bajos (< 5), la explicación más probable **no es multicolinealidad real** sino un **artefacto de escala**. El cálculo del CN usa la matriz de diseño completa $X$, que incluye la columna de intercepto (todos 1s). Cuando un predictor opera en escala de miles (como `weight` ≈ 2000–5000) mientras el intercepto vale 1, la disparidad en magnitudes infla enormemente el ratio $\lambda_{\max}/\lambda_{\min}$ sin que exista dependencia lineal real entre predictores.
+
+@belsley1980 [Cap. 3] recomienda **centrar y escalar** las columnas de $X$ (excluyendo el intercepto) antes de calcular el CN para obtener un diagnóstico limpio:
+:::
+
+```{r}
+#| label: condition-number-scaled
+
+# CN con matriz centrada y escalada (sin intercepto)
+X_scaled <- scale(model.matrix(modelo)[, -1])
+ev_scaled <- eigen(t(X_scaled) %*% X_scaled)$values
+cat(
+  "CN (centrado/escalado):",
+  round(sqrt(max(ev_scaled) / min(ev_scaled)), 2),
+  "\n"
+)
+```
+
+**Regla práctica:** cuando VIF < 5 y CN > 30, compare siempre con el CN escalado. Si el CN escalado cae dentro del rango aceptable, el problema es de escala, no de multicolinealidad.
 
 | Condition Number | Interpretación |
 |:---:|---|
