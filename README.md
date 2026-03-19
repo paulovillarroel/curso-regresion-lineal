@@ -37,8 +37,14 @@ Usa el dataset `Auto` del paquete `ISLR2` (392 automóviles, 1970–1982) con el
 
 ### Paquetes de R
 
+Se usa [pak](https://pak.r-lib.org/) para instalar dependencias (más rápido y con mejor manejo de versiones que `install.packages()`):
+
 ```r
-install.packages(c("lmtest", "car", "nortest", "tseries", "sandwich", "ISLR2"))
+# Instalar pak si no lo tienes
+install.packages("pak")
+
+# Instalar todas las dependencias del proyecto
+pak::pak(c("lmtest", "car", "nortest", "tseries", "sandwich", "ISLR2"))
 ```
 
 ## Instalación local
@@ -48,8 +54,8 @@ install.packages(c("lmtest", "car", "nortest", "tseries", "sandwich", "ISLR2"))
 git clone https://github.com/<tu-usuario>/curso-regresion-lineal.git
 cd curso-regresion-lineal
 
-# Instalar paquetes de R (si no los tienes)
-Rscript -e 'install.packages(c("lmtest", "car", "nortest", "tseries", "sandwich", "ISLR2"), repos = "https://cran.r-project.org")'
+# Instalar paquetes de R con pak
+Rscript -e 'if (!requireNamespace("pak", quietly = TRUE)) install.packages("pak"); pak::pak(c("lmtest", "car", "nortest", "tseries", "sandwich", "ISLR2"))'
 
 # Renderizar el documento
 quarto render supuestos_regresion_lineal.qmd
