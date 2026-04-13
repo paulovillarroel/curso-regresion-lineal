@@ -23,15 +23,16 @@ nocite: '@*'
 
 ## Introducción
 
-Este documento cubre el diagnóstico de los **5 supuestos clásicos** de la regresión lineal por mínimos cuadrados ordinarios (OLS):
+Este documento cubre el diagnóstico de los **5 supuestos clásicos** de la regresión lineal por mínimos cuadrados ordinarios (OLS), más el análisis de **observaciones influyentes** y una discusión sobre **endogeneidad**:
 
 1. **Linealidad** — la relación entre $Y$ y cada predictor es lineal.
 2. **Normalidad de residuos** — los errores se distribuyen $\varepsilon \sim N(0, \sigma^2)$.
 3. **Homocedasticidad** — la varianza del error es constante: $\text{Var}(\varepsilon_i) = \sigma^2$.
 4. **Independencia** — no hay autocorrelación: $\text{Cov}(\varepsilon_i, \varepsilon_j) = 0$ para $i \neq j$.
 5. **No multicolinealidad** — los predictores no son combinaciones lineales entre sí.
+6. **Outliers, leverage e influencia** — observaciones que pueden distorsionar los resultados.
 
-Para cada supuesto se presenta el test formal, el diagnóstico visual, las consideraciones prácticas y las referencias bibliográficas correspondientes.
+Para cada supuesto se presenta el test formal, el diagnóstico visual, las consideraciones prácticas y las referencias bibliográficas correspondientes. El documento incluye además ejemplos aplicados en contextos clínicos y organizacionales, y funciones reutilizables que consolidan todos los diagnósticos.
 
 ::: {.callout-tip}
 ## Regla general
