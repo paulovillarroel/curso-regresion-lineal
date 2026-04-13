@@ -48,7 +48,12 @@ Este curso se enfoca en una pregunta específica: **dado un modelo ya especifica
 
 Si omites una variable relevante que está correlacionada con tus predictores (un *confusor*), o incluyes una variable que no deberías (un *mediador* en el camino causal), los coeficientes estarán sesgados — y ningún test de supuestos lo detectará. Los residuos pueden verse perfectos mientras los coeficientes cuentan una historia equivocada.
 
-Pensándolo con una analogía: diagnosticar supuestos es como revisar que el motor de un auto funciona bien. Pero si te subiste al auto equivocado, de nada sirve que el motor esté perfecto. La identificación causal — decidir qué variables incluir y por qué — es elegir el auto correcto. Para una guía práctica sobre cómo tomar esas decisiones, ver @huntingtonklein2021.
+Pensándolo con una analogía: diagnosticar supuestos es como revisar que el motor de un auto funciona bien. Pero si te subiste al auto equivocado, de nada sirve que el motor esté perfecto. La identificación causal — decidir qué variables incluir y por qué — es elegir el auto correcto.
+
+Para profundizar en identificación causal, dos recursos complementarios:
+
+- @huntingtonklein2021 — Cubre diagramas causales (DAGs), back-door criterion y cómo decidir qué variables incluir en un modelo [Cap. 5–8]. Enfoque conceptual con ejemplos en R, Stata y Python.
+- @rcausal2024 — Guía práctica de inferencia causal **implementada en R**. Cubre DAGs con `ggdag` y `dagitty` [Cap. 4], propensity scores [Cap. 8–9], datos faltantes y error de medición [Cap. 15], y análisis de sensibilidad [Cap. 16]. Especialmente útil si trabajas en R y quieres pasar de los diagnósticos de este curso a la estimación de efectos causales.
 :::
 
 ### Referencias generales
@@ -508,14 +513,14 @@ cat("Observaciones completas:", n_completos, "de", n_total,
 colSums(is.na(datos[, c("Y", "X1", "X2")]))
 ```
 
-Si pierdes más del 5–10% de los datos, investiga **por qué** faltan antes de continuar. La calidad del registro institucional condiciona todo lo que sigue: ningún test de supuestos puede corregir un sesgo de selección introducido por datos faltantes no aleatorios.
+Si pierdes más del 5–10% de los datos, investiga **por qué** faltan antes de continuar. La calidad del registro institucional condiciona todo lo que sigue: ningún test de supuestos puede corregir un sesgo de selección introducido por datos faltantes no aleatorios. Para un tratamiento formal de datos faltantes y error de medición en el contexto de inferencia causal, ver @rcausal2024 [Cap. 15].
 :::
 
 ## Orden recomendado de diagnóstico {#sec-orden}
 
 El diagnóstico de supuestos no es una checklist que se recorre en cualquier orden. Algunos problemas pueden enmascarar o amplificar otros, por lo que el orden importa.
 
-Pero antes de entrar en esta secuencia, recuerda que existe un **paso previo** que este curso no cubre: la **especificación causal** del modelo — es decir, decidir qué variables incluir basándote en el conocimiento del fenómeno que estudias. ¿Es una variable un confusor que debes controlar? ¿Es un mediador que no deberías incluir? Si este paso se hizo mal, el modelo tendrá endogeneidad (ver @sec-por-que) y ningún diagnóstico de residuos lo revelará. Para una guía sobre cómo tomar estas decisiones, ver @huntingtonklein2021 [Cap. 13].
+Pero antes de entrar en esta secuencia, recuerda que existe un **paso previo** que este curso no cubre: la **especificación causal** del modelo — es decir, decidir qué variables incluir basándote en el conocimiento del fenómeno que estudias. ¿Es una variable un confusor que debes controlar? ¿Es un mediador que no deberías incluir? Si este paso se hizo mal, el modelo tendrá endogeneidad (ver @sec-por-que) y ningún diagnóstico de residuos lo revelará. Para guías sobre cómo tomar estas decisiones, ver @huntingtonklein2021 [Cap. 5–8] y @rcausal2024 [Cap. 4–6].
 
 Asumiendo que la especificación causal es razonable, el orden de diagnóstico estadístico recomendado es:
 
@@ -2258,6 +2263,8 @@ Este curso se enfoca en la regresión lineal clásica (OLS), que es la base de l
 - **Tiempos hasta un evento** (sobrevida, tiempo hasta el alta) → Modelos de supervivencia (Cox).
 
 Si después de diagnosticar y re-especificar tu modelo OLS sigues con problemas persistentes (residuos que no pueden ser normales, predicciones negativas para una variable que solo puede ser positiva), probablemente la solución no es otra transformación sino **otro tipo de modelo**. Los modelos lineales generalizados (GLM) extienden la lógica de OLS a estas situaciones, manteniendo la misma estructura de coeficientes e interpretación que ya aprendiste aquí.
+
+Si además tu objetivo es estimar **efectos causales** (no solo asociaciones), el siguiente paso es combinar estos modelos con técnicas de identificación causal: propensity scores, G-computation, métodos doblemente robustos o variables instrumentales. Para una guía completa implementada en R, ver @rcausal2024 [Cap. 10–21] y @huntingtonklein2021 [Cap. 13–20].
 :::
 
 ## Checklist interpretativa final
