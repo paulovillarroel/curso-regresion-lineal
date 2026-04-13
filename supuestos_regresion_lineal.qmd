@@ -90,7 +90,7 @@ Es frecuente encontrar la sigla BLUE sin explicación. Viene del inglés: **B**e
 
 La condición $E[\varepsilon|X] = 0$ (exogeneidad estricta) es probablemente el supuesto más violado en la práctica. Las causas más frecuentes son:
 
-- **Sesgo por variable omitida (OVB):** Si una variable relevante se omite del modelo y está correlacionada con los predictores incluidos, el término de error absorbe su efecto. Los estimadores resultantes son **sesgados e inconsistentes**. La magnitud del sesgo es: $\text{sesgo}(\hat{\beta}_1) = \beta_2 \cdot \delta$, donde $\beta_2$ es el efecto de la variable omitida y $\delta$ la relación entre la omitida y el predictor incluido. **Ejemplo:** si queremos medir el efecto del peso (`weight`) en el rendimiento (`mpg`) pero omitimos la cilindrada del motor, parte del efecto de la cilindrada se "cuela" en el coeficiente de peso, distorsionándolo.
+- **Sesgo por variable omitida (OVB):** Si una variable relevante se omite del modelo y está correlacionada con los predictores incluidos, el término de error absorbe su efecto. Los estimadores resultantes son **sesgados e inconsistentes**. La magnitud del sesgo es: $\text{sesgo}(\hat{\beta}_1) = \beta_2 \cdot \delta$, donde $\beta_2$ es el efecto de la variable omitida y $\delta$ la relación entre la omitida y el predictor incluido. **Ejemplo automotriz:** si queremos medir el efecto del peso (`weight`) en el rendimiento (`mpg`) pero omitimos la cilindrada del motor, parte del efecto de la cilindrada se "cuela" en el coeficiente de peso, distorsionándolo. **Ejemplo clínico:** supongamos que queremos estimar el efecto de la edad sobre la mortalidad hospitalaria, pero omitimos la presencia de diabetes (una comorbilidad frecuente que se correlaciona con la edad). El modelo atribuirá a la edad parte del efecto que en realidad corresponde a la diabetes — sobreestimando el riesgo asociado a envejecer y subestimando el de la comorbilidad omitida. En gestión de salud, esto puede llevar a asignar recursos basándose en edad cuando el factor modificable es el manejo de la diabetes.
 - **Simultaneidad:** $X$ causa $Y$, pero $Y$ también causa $X$ (e.g., precio y cantidad en equilibrio de mercado).
 - **Error de medición:** Si un predictor se mide con error, el error de medición se incorpora a $\varepsilon$, correlacionándolo con $X$.
 
@@ -734,6 +734,11 @@ legend(
 
 **¿Por qué ocurre en la práctica?** La heterocedasticidad es ubicua en datos reales. Ejemplos comunes: la variabilidad del gasto crece con el ingreso (los hogares ricos tienen más opciones de consumo), los errores de medición son proporcionales a la magnitud medida, o la dispersión de precios de vivienda aumenta en barrios de mayor valor. Como regla general, cuando la respuesta $Y$ es estrictamente positiva y varía en órdenes de magnitud, es probable que haya heterocedasticidad.
 
+::: {.callout-tip}
+## Ejemplo clínico: estadía hospitalaria
+Un caso clásico en datos de salud es modelar los **días de estadía hospitalaria** en función de variables como edad, diagnóstico o cantidad de procedimientos. Los pacientes con estadías cortas (1–3 días) tienen poca variabilidad entre sí: una apendicectomía sin complicaciones toma tiempos similares. Pero a medida que la estadía aumenta, la varianza explota: un paciente con 30 días de hospitalización puede tener desde una recuperación complicada pero predecible hasta una cadena de eventos adversos impredecibles. El resultado es un patrón de embudo (fan-shape) perfecto en el gráfico de residuos vs ajustados. En este contexto, usar los errores estándar OLS sin corrección puede llevar a declarar significativos predictores que no lo son — con implicancias directas en decisiones de gestión hospitalaria.
+:::
+
 ```{r}
 #| label: fig-concepto-heterocedasticidad
 #| fig-cap: "Izquierda: varianza constante (homocedasticidad). Derecha: varianza creciente (heterocedasticidad, forma de embudo)."
@@ -1086,6 +1091,16 @@ sort(abs(stud_res), decreasing = TRUE)[1:5]
 ::: {.callout-warning}
 ## Cuidado con la eliminación mecánica
 Un outlier no siempre es un error de medición. Puede revelar una deficiencia del modelo (predictor omitido, forma funcional incorrecta). Investigar la causa antes de eliminar observaciones.
+:::
+
+::: {.callout-tip}
+## Antes de transformar: ¿el problema está en los datos o en el proceso?
+
+En la práctica — especialmente en contextos clínicos y organizacionales — muchos outliers y puntos de alto leverage no reflejan fenómenos reales sino **problemas en el proceso de captura de datos**. Errores de digitación (un peso de 800 kg en vez de 80 kg), sistemas de información fragmentados que duplican o pierden registros, campos que cambian de unidad entre períodos (días vs. horas), o valores por defecto que el sistema asigna cuando un campo queda vacío (e.g., edad = 0 o fecha = 01/01/1900).
+
+Estos errores se manifiestan en el diagnóstico como outliers o puntos de leverage extremo, y la tentación natural es aplicar una transformación logarítmica o eliminar la observación. Pero si la causa es un error de registro, la solución correcta no es estadística — es **auditar el proceso de captura de datos**. Antes de transformar o eliminar, pregúntate: ¿este valor es biológica o administrativamente plausible? Si la respuesta es no, la prioridad es corregir el dato en la fuente o excluirlo con una justificación documentada, no enmascarar el problema con una transformación.
+
+Esta distinción es particularmente relevante en instituciones de salud, donde la calidad del dato depende de múltiples actores (admisión, enfermería, laboratorio, codificación) y la fragmentación de los sistemas de información es la norma, no la excepción.
 :::
 
 ### Puntos de alto leverage (hat values)
