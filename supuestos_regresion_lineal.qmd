@@ -2009,11 +2009,13 @@ La elección de la forma funcional (lineal, cuadrática o logarítmica) no es un
 
 Antes de ejecutar `lm()`, pregúntate cómo funciona el proceso en la realidad clínica o administrativa:
 
-| Especificación | Cuándo usarla | Ejemplo en salud |
-|---|---|---|
-| **Lineal** ($Y = \beta_0 + \beta_1 X$) | El efecto es **aditivo y constante**. Cada unidad adicional de $X$ suma la misma cantidad a $Y$, sin importar el nivel de $X$. | Por cada examen de laboratorio extra que se solicita, el costo total de la atención sube en una cantidad fija, independientemente de si el paciente lleva 1 o 10 exámenes previos. |
-| **Cuadrática** ($Y = \beta_0 + \beta_1 X + \beta_2 X^2$) | Existe un efecto de **saturación, rendimientos decrecientes o un patrón en U**. El efecto de $X$ cambia de dirección o se atenúa. | La mortalidad posquirúrgica según edad: alta en neonatos, baja en adultos jóvenes, vuelve a subir en la tercera edad. Un modelo lineal diría erróneamente que "la edad no afecta" o que el efecto es monótono; el cuadrático captura la curva. |
-| **Log-log** ($\log Y = \beta_0 + \beta_1 \log X$) | El fenómeno es **multiplicativo**: un cambio porcentual en $X$ produce un cambio porcentual constante en $Y$. La variable dependiente tiene asimetría positiva (cola larga). | Tiempos de estadía hospitalaria o días en lista de espera oncológica. Una comorbilidad grave no suma "2 días fijos" a la espera, sino que probablemente *multiplica* el tiempo base en un porcentaje. |
+| Especificación | Fórmula | Interpretación de $\beta_1$ | Ejemplo en salud |
+|---|---|---|---|
+| **Lineal** (level-level) | $Y = \beta_0 + \beta_1 X$ | Un aumento de 1 unidad en $X$ se asocia con un cambio de $\beta_1$ unidades en $Y$. | Por cada examen de laboratorio extra, el costo sube en una cantidad fija, independientemente de si el paciente lleva 1 o 10 exámenes previos. |
+| **Log-lin** (log-level) | $\log Y = \beta_0 + \beta_1 X$ | Un aumento de 1 unidad en $X$ se asocia con un cambio de $\beta_1 \times 100$% en $Y$. | Decaimiento del volumen de pacientes en lista de espera: cada día adicional reduce el volumen en un porcentaje constante (decaimiento exponencial). |
+| **Lin-log** (level-log) | $Y = \beta_0 + \beta_1 \log X$ | Un aumento de 1% en $X$ se asocia con un cambio de $\beta_1 / 100$ unidades en $Y$. | Efecto del gasto per cápita en salud sobre la esperanza de vida: duplicar el gasto mejora la esperanza de vida, pero cada peso adicional rinde menos que el anterior (rendimientos decrecientes). |
+| **Log-log** | $\log Y = \beta_0 + \beta_1 \log X$ | Un aumento de 1% en $X$ se asocia con un cambio de $\beta_1$% en $Y$ (elasticidad). | Tiempos de estadía hospitalaria. Una comorbilidad grave no suma "2 días fijos" a la espera, sino que *multiplica* el tiempo base en un porcentaje. |
+| **Cuadrática** | $Y = \beta_0 + \beta_1 X + \beta_2 X^2$ | El efecto de $X$ no es constante: depende del nivel de $X$. Efecto marginal = $\beta_1 + 2\beta_2 X$. | Mortalidad posquirúrgica según edad: alta en neonatos, baja en adultos jóvenes, vuelve a subir en la tercera edad. Un modelo lineal no capturaría esta curva en U. |
 
 #### Paso 2: ¿Qué dice `diagnostico_ols()`?
 
