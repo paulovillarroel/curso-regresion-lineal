@@ -2001,6 +2001,69 @@ La función no reemplaza el análisis: **lo estructura**.
 
 > *En regresión, la mayoría de los problemas no se corrigen con tests — se corrigen con mejores modelos.*
 
+### Guía rápida: ¿Cómo elegir la especificación en contextos de salud?
+
+La elección de la forma funcional (lineal, cuadrática o logarítmica) no es un ejercicio de ensayo y error para forzar un p-value. Es una decisión teórica respaldada por evidencia empírica. En contextos clínicos y de gestión sanitaria, esta guía de tres pasos ayuda a tomar esa decisión de forma estructurada.
+
+#### Paso 1: La naturaleza del fenómeno
+
+Antes de ejecutar `lm()`, pregúntate cómo funciona el proceso en la realidad clínica o administrativa:
+
+| Especificación | Cuándo usarla | Ejemplo en salud |
+|---|---|---|
+| **Lineal** ($Y = \beta_0 + \beta_1 X$) | El efecto es **aditivo y constante**. Cada unidad adicional de $X$ suma la misma cantidad a $Y$, sin importar el nivel de $X$. | Por cada examen de laboratorio extra que se solicita, el costo total de la atención sube en una cantidad fija, independientemente de si el paciente lleva 1 o 10 exámenes previos. |
+| **Cuadrática** ($Y = \beta_0 + \beta_1 X + \beta_2 X^2$) | Existe un efecto de **saturación, rendimientos decrecientes o un patrón en U**. El efecto de $X$ cambia de dirección o se atenúa. | La mortalidad posquirúrgica según edad: alta en neonatos, baja en adultos jóvenes, vuelve a subir en la tercera edad. Un modelo lineal diría erróneamente que "la edad no afecta" o que el efecto es monótono; el cuadrático captura la curva. |
+| **Log-log** ($\log Y = \beta_0 + \beta_1 \log X$) | El fenómeno es **multiplicativo**: un cambio porcentual en $X$ produce un cambio porcentual constante en $Y$. La variable dependiente tiene asimetría positiva (cola larga). | Tiempos de estadía hospitalaria o días en lista de espera oncológica. Una comorbilidad grave no suma "2 días fijos" a la espera, sino que probablemente *multiplica* el tiempo base en un porcentaje. |
+
+#### Paso 2: ¿Qué dice `diagnostico_ols()`?
+
+Si la teoría no es concluyente, el análisis de residuos guía el ajuste. Estos son los patrones más comunes y qué hacer en cada caso:
+
+- **Falla RESET (Ramsey):** Es la señal principal de mala especificación. Revisa el gráfico de residuos vs ajustados: si ves una "U" o un patrón curvo, prueba un término cuadrático centrado. Si la curva se parece más a una exponencial que a una parábola, prueba la transformación logarítmica.
+
+- **Falla Breusch-Pagan con patrón de abanico:** Un modelo que se "desparrama" en valores altos a menudo esconde una relación multiplicativa. Prueba `log(Y)`. Si la varianza se estabiliza y el QQ-plot mejora simultáneamente, la forma funcional correcta era multiplicativa — y la heterocedasticidad era un síntoma, no el problema real.
+
+- **Cook's D con observaciones extremas arrastrando la recta:** Muy común en costos de salud o estadías prolongadas. Antes de eliminar esas observaciones, prueba una transformación `log()`: comprime naturalmente los extremos, reduciéndoles leverage sin tener que sacarlos del registro. Si después de transformar el modelo los diagnósticos de influencia mejoran, el problema no eran las observaciones sino la escala del modelo.
+
+#### Paso 3: La interpretabilidad para el usuario final
+
+El mejor modelo del mundo no sirve si no puedes explicárselo a un referente técnico o a un director de hospital:
+
+- **Coeficientes lineales** se comunican directo: *"Un año extra de edad se asocia con 1.5 días más de estadía"*.
+- **Coeficientes cuadráticos** requieren explicar que el efecto no es constante: *"El efecto de la edad cambia dependiendo de qué tan mayor sea el paciente — es mayor en los extremos"*.
+- **Coeficientes log-log** se leen como elasticidades (porcentajes): *"Un aumento del 10% en el presupuesto del servicio se asocia con una reducción del X% en los tiempos de espera"*.
+
+::: {.callout-important}
+## Regla de oro
+Si una transformación compleja (como un polinomio de grado 3) mejora marginalmente el ajuste pero destruye la capacidad de comunicar el hallazgo de forma sencilla, quédate con el modelo más simple y reporta las limitaciones. Un modelo lineal con errores robustos y una interpretación clara puede ser más útil para la toma de decisiones que un modelo perfecto que nadie entiende.
+:::
+
+::: {.callout-tip}
+## Caso de uso: La "cola larga" de las listas de espera
+
+Uno de los problemas más comunes en gestión sanitaria es modelar los tiempos de las listas de espera (quirúrgicas u oncológicas). Si graficamos el **volumen de pacientes** ($Y$) versus los **días de espera** ($X$), casi siempre observamos un comportamiento extremo: una masa de pacientes que ingresó recientemente (días bajos), seguida de una caída abrupta y una "cola larga" de pacientes que se arrastra por meses o años.
+
+**¿Qué pasa si usamos OLS lineal?** La recta intentará pasar por el medio del volumen masivo inicial, caerá en picada y cruzará el eje $X$, terminando por predecir una cantidad *negativa* de pacientes para los tiempos de espera más largos. Un modelo lineal promedia el fenómeno y oculta a los pacientes de mayor riesgo clínico.
+
+**¿Cómo se especifica correctamente?**
+
+1. **Log-lin** ($\log(Y) = \beta_0 + \beta_1 X$) — Asume decaimiento exponencial. El volumen no cae en un número fijo de pacientes por día, sino en un *porcentaje* constante.
+2. **Log-log** ($\log(Y) = \beta_0 + \beta_1 \log(X)$) — Comprime tanto el pico inicial como la cola, estabilizando la varianza si el decaimiento es más lento que exponencial.
+3. **Más allá de OLS:** Dado que el volumen de pacientes es una variable de conteo (no hay 1.5 pacientes), en un entorno avanzado se usaría una regresión de Poisson o **binomial negativa** (GLM). Esta especificación respeta la naturaleza de los números enteros, nunca predice valores negativos y maneja la sobredispersión inherente a estos datos.
+:::
+
+::: {.callout-note}
+## Más allá de OLS: ¿Cuándo considerar otros modelos?
+
+Este curso se enfoca en la regresión lineal clásica (OLS), que es la base de la modelación estadística. Pero en contextos de salud, muchas variables de resultado no se ajustan bien a un modelo lineal, sin importar cuántas transformaciones apliques:
+
+- **Variables de conteo** (número de consultas, reingresos, eventos adversos) → Regresión de Poisson o Binomial Negativa.
+- **Variables binarias** (mortalidad sí/no, readmisión sí/no) → Regresión Logística.
+- **Tiempos hasta un evento** (sobrevida, tiempo hasta el alta) → Modelos de supervivencia (Cox).
+
+Si después de diagnosticar y re-especificar tu modelo OLS sigues con problemas persistentes (residuos que no pueden ser normales, predicciones negativas para una variable que solo puede ser positiva), probablemente la solución no es otra transformación sino **otro tipo de modelo**. Los modelos lineales generalizados (GLM) extienden la lógica de OLS a estas situaciones, manteniendo la misma estructura de coeficientes e interpretación que ya aprendiste aquí.
+:::
+
 ## Checklist interpretativa final
 
 Una vez completado el diagnóstico, la pregunta definitiva no es "¿pasaron todos los tests?" sino: **¿las conclusiones del análisis son robustas a los problemas detectados?**
