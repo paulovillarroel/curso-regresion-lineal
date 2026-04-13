@@ -2007,15 +2007,107 @@ La elección de la forma funcional (lineal, cuadrática o logarítmica) no es un
 
 #### Paso 1: La naturaleza del fenómeno
 
-Antes de ejecutar `lm()`, pregúntate cómo funciona el proceso en la realidad clínica o administrativa:
+Antes de ejecutar `lm()`, pregúntate cómo funciona el proceso en la realidad clínica o administrativa. Cada forma funcional captura un tipo distinto de relación entre las variables. La siguiente tabla resume las cinco especificaciones más comunes:
 
-| Especificación | Fórmula | Interpretación de $\beta_1$ | Ejemplo en salud |
-|---|---|---|---|
-| **Lineal** (level-level) | $Y = \beta_0 + \beta_1 X$ | Un aumento de 1 unidad en $X$ se asocia con un cambio de $\beta_1$ unidades en $Y$. | Por cada examen de laboratorio extra, el costo sube en una cantidad fija, independientemente de si el paciente lleva 1 o 10 exámenes previos. |
-| **Log-lin** (log-level) | $\log Y = \beta_0 + \beta_1 X$ | Un aumento de 1 unidad en $X$ se asocia con un cambio de $\beta_1 \times 100$% en $Y$. | Decaimiento del volumen de pacientes en lista de espera: cada día adicional reduce el volumen en un porcentaje constante (decaimiento exponencial). |
-| **Lin-log** (level-log) | $Y = \beta_0 + \beta_1 \log X$ | Un aumento de 1% en $X$ se asocia con un cambio de $\beta_1 / 100$ unidades en $Y$. | Efecto del gasto per cápita en salud sobre la esperanza de vida: duplicar el gasto mejora la esperanza de vida, pero cada peso adicional rinde menos que el anterior (rendimientos decrecientes). |
-| **Log-log** | $\log Y = \beta_0 + \beta_1 \log X$ | Un aumento de 1% en $X$ se asocia con un cambio de $\beta_1$% en $Y$ (elasticidad). | Tiempos de estadía hospitalaria. Una comorbilidad grave no suma "2 días fijos" a la espera, sino que *multiplica* el tiempo base en un porcentaje. |
-| **Cuadrática** | $Y = \beta_0 + \beta_1 X + \beta_2 X^2$ | El efecto de $X$ no es constante: depende del nivel de $X$. Efecto marginal = $\beta_1 + 2\beta_2 X$. | Mortalidad posquirúrgica según edad: alta en neonatos, baja en adultos jóvenes, vuelve a subir en la tercera edad. Un modelo lineal no capturaría esta curva en U. |
+| Especificación | Fórmula | Interpretación de $\beta_1$ |
+|---|---|---|
+| **Lineal** (level-level) | $Y = \beta_0 + \beta_1 X$ | +1 unidad en $X$ → $+\beta_1$ unidades en $Y$ |
+| **Log-lin** (log-level) | $\log Y = \beta_0 + \beta_1 X$ | +1 unidad en $X$ → $+\beta_1 \times 100$% en $Y$ |
+| **Lin-log** (level-log) | $Y = \beta_0 + \beta_1 \log X$ | +1% en $X$ → $+\beta_1 / 100$ unidades en $Y$ |
+| **Log-log** | $\log Y = \beta_0 + \beta_1 \log X$ | +1% en $X$ → $+\beta_1$% en $Y$ (elasticidad) |
+| **Cuadrática** | $Y = \beta_0 + \beta_1 X + \beta_2 X^2$ | Efecto marginal = $\beta_1 + 2\beta_2 X$ (varía según $X$) |
+
+A continuación, cada especificación se desarrolla con su explicación, cuándo usarla en contextos de salud, y cómo implementarla en R.
+
+##### Lineal (level-level)
+
+$$Y = \beta_0 + \beta_1 X$$
+
+El modelo más simple: asume que el efecto de $X$ sobre $Y$ es **aditivo y constante**. Cada unidad adicional de $X$ suma la misma cantidad a $Y$, sin importar el nivel de $X$. Es el punto de partida natural y muchas veces suficiente.
+
+**Cuándo usarlo en salud:** Cuando el efecto es razonablemente proporcional. Por ejemplo, si cada examen de laboratorio adicional agrega un costo fijo al total de la atención, independientemente de cuántos exámenes ya se hayan pedido.
+
+```r
+# Lineal: Y ~ X
+modelo_lineal <- lm(costo ~ n_examenes + edad + sexo, data = datos)
+summary(modelo_lineal)
+# Interpretación: "Cada examen adicional se asocia con un aumento
+# de beta_1 pesos en el costo total"
+```
+
+##### Log-lin (log-level)
+
+$$\log(Y) = \beta_0 + \beta_1 X$$
+
+Se transforma solo la variable dependiente. Asume que el efecto de $X$ es **porcentual sobre $Y$**: cada unidad adicional de $X$ cambia $Y$ en un porcentaje constante, no en una cantidad fija. Esto produce un crecimiento (o decaimiento) exponencial.
+
+**Cuándo usarlo en salud:** Cuando $Y$ tiene asimetría positiva fuerte (cola larga a la derecha) y el efecto de $X$ es multiplicativo. Ejemplo clásico: el decaimiento del volumen de pacientes en lista de espera según los días transcurridos. Cada día adicional no saca un número fijo de pacientes, sino que reduce el volumen en un porcentaje constante.
+
+```r
+# Log-lin: log(Y) ~ X
+modelo_loglin <- lm(log(dias_estadia) ~ n_comorbilidades + edad + sexo,
+                    data = datos)
+summary(modelo_loglin)
+# Interpretación: "Cada comorbilidad adicional se asocia con un aumento
+# de (exp(beta_1) - 1) * 100 % en los días de estadía"
+# Aproximación rápida si beta_1 es pequeño: beta_1 * 100 %
+```
+
+##### Lin-log (level-log)
+
+$$Y = \beta_0 + \beta_1 \log(X)$$
+
+Se transforma solo el predictor. Captura **rendimientos decrecientes**: los primeros incrementos de $X$ tienen un efecto grande sobre $Y$, pero a medida que $X$ crece, el efecto marginal se atenúa. La curva sube rápido al principio y luego se aplana.
+
+**Cuándo usarlo en salud:** Cuando el recurso tiene un rendimiento que se satura. Ejemplo: el efecto del gasto per cápita en salud sobre la esperanza de vida. Pasar de \$100 a \$200 per cápita tiene un impacto enorme; pasar de \$5.000 a \$5.100 casi no cambia nada. La transformación logarítmica del gasto captura esta asimetría.
+
+```r
+# Lin-log: Y ~ log(X)
+modelo_linlog <- lm(esperanza_vida ~ log(gasto_percapita) + educacion,
+                    data = datos)
+summary(modelo_linlog)
+# Interpretación: "Duplicar el gasto per cápita (aumento de 100%)
+# se asocia con un aumento de beta_1 * log(2) ≈ beta_1 * 0.693
+# años en la esperanza de vida"
+```
+
+##### Log-log
+
+$$\log(Y) = \beta_0 + \beta_1 \log(X)$$
+
+Se transforman ambas variables. El coeficiente $\beta_1$ es directamente una **elasticidad**: un cambio de 1% en $X$ se asocia con un cambio de $\beta_1$% en $Y$. Esta es la especificación natural cuando la relación entre las variables es multiplicativa en ambos sentidos.
+
+**Cuándo usarlo en salud:** Cuando tanto $Y$ como $X$ tienen distribuciones asimétricas y el efecto es proporcional. Ejemplo: la relación entre estadía hospitalaria y peso de los pacientes. Un kilo extra no impacta igual a un paciente de 50 kg que a uno de 120 kg — el efecto es proporcional al nivel base. Además, la doble transformación logarítmica suele estabilizar la varianza (resolviendo heterocedasticidad) y comprimir valores extremos (reduciendo el impacto de outliers).
+
+```r
+# Log-log: log(Y) ~ log(X)
+modelo_loglog <- lm(log(dias_estadia) ~ log(peso) + edad + sexo,
+                    data = datos)
+summary(modelo_loglog)
+# Interpretación: "Un aumento del 10% en el peso se asocia con un
+# cambio de beta_1 * 10 % en los días de estadía"
+```
+
+##### Cuadrática
+
+$$Y = \beta_0 + \beta_1 X + \beta_2 X^2$$
+
+Permite que el efecto de $X$ **cambie de dirección o se atenúe**. A diferencia de las transformaciones logarítmicas, la cuadrática puede capturar relaciones en U o en U invertida. El efecto marginal no es constante: depende del valor de $X$ según $\frac{\partial Y}{\partial X} = \beta_1 + 2\beta_2 X$.
+
+**Cuándo usarlo en salud:** Cuando hay un punto de inflexión o un óptimo. Ejemplo clásico: la mortalidad posquirúrgica según edad. Es alta en neonatos, baja en adultos jóvenes y vuelve a subir en la tercera edad. Un modelo lineal diría que "la edad no afecta" (promediando subidas y bajadas) o que el efecto es monótono; el cuadrático captura la curva en U.
+
+**Importante:** centrar la variable antes de elevarla al cuadrado para evitar multicolinealidad artificial entre $X$ y $X^2$ (ver la sección de re-especificación de este documento).
+
+```r
+# Cuadrática: Y ~ X + X^2 (centrado)
+datos$edad_c <- datos$edad - mean(datos$edad)
+modelo_cuad <- lm(mortalidad ~ edad_c + I(edad_c^2) + sexo + asa_score,
+                  data = datos)
+summary(modelo_cuad)
+# Interpretación: "El efecto de la edad sobre la mortalidad no es
+# constante. En la edad promedio, el efecto marginal es beta_1.
+# Si beta_2 > 0, la mortalidad aumenta más rápido en los extremos."
+```
 
 #### Paso 2: ¿Qué dice `diagnostico_ols()`?
 
@@ -2031,9 +2123,11 @@ Si la teoría no es concluyente, el análisis de residuos guía el ajuste. Estos
 
 El mejor modelo del mundo no sirve si no puedes explicárselo a un referente técnico o a un director de hospital:
 
-- **Coeficientes lineales** se comunican directo: *"Un año extra de edad se asocia con 1.5 días más de estadía"*.
-- **Coeficientes cuadráticos** requieren explicar que el efecto no es constante: *"El efecto de la edad cambia dependiendo de qué tan mayor sea el paciente — es mayor en los extremos"*.
-- **Coeficientes log-log** se leen como elasticidades (porcentajes): *"Un aumento del 10% en el presupuesto del servicio se asocia con una reducción del X% en los tiempos de espera"*.
+- **Lineal:** *"Un año extra de edad se asocia con 1.5 días más de estadía."*
+- **Log-lin:** *"Cada comorbilidad adicional aumenta la estadía en un 15%."*
+- **Lin-log:** *"Duplicar el gasto per cápita se asocia con 2.3 años más de esperanza de vida."*
+- **Log-log:** *"Un aumento del 10% en el presupuesto reduce los tiempos de espera en un 5%."*
+- **Cuadrática:** *"El efecto de la edad cambia según qué tan mayor sea el paciente — es mayor en los extremos."*
 
 ::: {.callout-important}
 ## Regla de oro
