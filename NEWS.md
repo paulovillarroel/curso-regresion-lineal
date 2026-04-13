@@ -1,4 +1,4 @@
-# diagols 0.2.0
+# diagols 0.2.1
 
 ## Nuevas funciones
 
