@@ -1,5 +1,12 @@
 # diagols 0.2.0
 
+## Nueva función: `comparar_modelos()`
+
+- Compara 2+ modelos `lm` en una sola tabla: AIC, delta-AIC, y flags diagnósticos.
+- **Detecta automáticamente `log(Y)`** en la fórmula y aplica corrección Jacobiana al AIC — permite comparar modelos con Y vs log(Y) en la misma escala.
+- Columna `n_problemas` cuenta cuántos flags están en TRUE para cada modelo.
+- Retorna tibble listo para pipelines tidy.
+
 ## Arquitectura
 
 - **Clase S3 `dx_ols`**: `diagnostico_ols()` ahora retorna un objeto con clase propia. La lógica de cálculo está separada de la lógica de impresión (`print.dx_ols()`), siguiendo el estándar de R.

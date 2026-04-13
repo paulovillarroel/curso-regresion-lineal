@@ -144,6 +144,43 @@ p & ggplot2::theme_minimal()
 p & ggplot2::theme_bw(base_size = 14)
 ```
 
+### `comparar_modelos(..., alpha = 0.05, bg_order = 1)`
+
+Compara 2+ modelos `lm` con AIC corregido por Jacobiano y flags diagnósticos.
+
+**Parámetros:**
+- `...`: dos o más objetos `lm`.
+- `alpha`, `bg_order`: se pasan a `diagnostico_ols()` internamente.
+
+**Detección automática de log(Y):** Parsea la fórmula de cada modelo. Si la variable dependiente está envuelta en `log()`, aplica la corrección Jacobiana: `AIC_corregido = AIC_log + 2 * sum(log(y_original))`. Esto permite comparar modelos con Y contra modelos con log(Y) en la misma escala — algo que `AIC()` de base R y `performance::compare_performance()` no hacen.
+
+**Retorna:** tibble con una fila por modelo:
+
+| Columna | Descripción |
+|---|---|
+| `modelo` | Fórmula como texto |
+| `n`, `k` | Observaciones y predictores |
+| `AIC` | AIC (corregido si log_y = TRUE) |
+| `delta_AIC` | Diferencia respecto al mejor (0 = mejor) |
+| `log_y` | TRUE si la variable dependiente tiene log() |
+| `especificacion` ... `outliers` | Flags de cada diagnóstico (TRUE = problema) |
+| `n_problemas` | Conteo total de flags TRUE |
+
+**Ejemplo:**
+
+```r
+comp <- comparar_modelos(modelo_lineal, modelo_quad, modelo_log)
+comp
+
+# El mejor modelo tiene delta_AIC = 0 y menor n_problemas
+comp |> dplyr::arrange(delta_AIC)
+```
+
+**Interpretación de delta_AIC:**
+- delta < 2: modelos esencialmente equivalentes
+- delta 4–7: evidencia moderada a favor del mejor
+- delta > 10: modelo sustancialmente peor
+
 ## Flujo de trabajo recomendado para el agente
 
 ### 1. Diagnóstico inicial
