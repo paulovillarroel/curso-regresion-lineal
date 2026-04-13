@@ -70,6 +70,19 @@ Cuando ajustamos un modelo de regresión lineal por mínimos cuadrados ordinario
 
 El problema es que esos números tienen una **interpretación estadística válida solo bajo ciertas condiciones**. Esas condiciones son precisamente los supuestos. Si no se cumplen, los coeficientes pueden estar sesgados, los errores estándar pueden ser incorrectos, los p-values pueden ser engañosos, y las predicciones pueden ser inútiles.
 
+::: {.callout-important}
+## Los supuestos no son para que el modelo "funcione" — son para que la inferencia sea válida
+
+Esta distinción es crucial. Un modelo con supuestos violados **sigue haciendo predicciones** — y esas predicciones pueden incluso ser razonables para interpolar dentro del rango de los datos. Lo que se rompe es la **inferencia**: los p-values, los intervalos de confianza y las conclusiones sobre si un efecto es "significativo" o no.
+
+| Objetivo del modelo | ¿Se necesitan los supuestos? |
+|---|---|
+| **Predicción** (¿cuánto va a costar esta hospitalización?) | Menos crítico. Si el modelo predice bien en datos nuevos, los supuestos importan menos. |
+| **Inferencia** (¿el tratamiento reduce la estadía?) | **Crítico.** Sin supuestos, los p-values y los IC pueden ser completamente inválidos — podrías declarar significativo un efecto que no existe, o viceversa. |
+
+Si tu objetivo es solo predecir, herramientas como machine learning pueden ser más apropiadas (y no requieren estos supuestos). Pero si necesitas **entender y comunicar relaciones causales o asociativas** — que es lo que hacen la mayoría de los análisis en salud, epidemiología y gestión — la inferencia es lo central, y los supuestos son innegociables.
+:::
+
 ### El Teorema de Gauss-Markov: la promesa de OLS
 
 La razón teórica por la que usamos OLS (y no cualquier otro método de estimación) es el **Teorema de Gauss-Markov** [@gauss1809; @markov1912; formalizado por @aitken1935]. Este teorema establece que:
@@ -614,6 +627,8 @@ crPlots(modelo)
 ## Normalidad de residuos {#sec-normalidad}
 
 **Supuesto:** $\varepsilon \sim N(0, \sigma^2)$.
+
+**Aclaración fundamental:** El supuesto de normalidad se refiere a los **errores** ($\varepsilon$), no a la variable dependiente ($Y$) ni a los predictores ($X$). Una $Y$ con distribución asimétrica (como costos hospitalarios o días de estadía) puede producir residuos perfectamente normales si el modelo está bien especificado. Verificar normalidad haciendo un histograma de $Y$ antes de ajustar el modelo es un error frecuente — lo que se evalúa son los **residuos del modelo ajustado**, no los datos crudos.
 
 ::: {.callout-important}
 ## ¿Cuándo importa realmente?
