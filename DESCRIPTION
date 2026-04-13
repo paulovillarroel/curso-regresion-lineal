@@ -1,6 +1,6 @@
 Package: diagols
 Title: Diagnostico de Supuestos en Regresion Lineal (OLS)
-Version: 0.2.1
+Version: 0.2.2
 Authors@R:
     person("Paulo", "Villarroel", , "paulovillarroel@gmail.com",
            role = c("aut", "cre"))

@@ -38,7 +38,7 @@ El documento está estructurado como un flujo de trabajo completo:
 - Caso de uso: la "cola larga" de las listas de espera y cuándo ir más allá de OLS (GLM).
 - Referencias complementarias: [The Effect](https://theeffectbook.net/) y [Causal Inference in R](https://www.r-causal.org/) con capítulos específicos.
 
-## Paquete `diagols` (v0.2.1)
+## Paquete `diagols` (v0.2.2)
 
 Las funciones diagnósticas están disponibles como paquete R instalable directamente desde este repositorio:
 

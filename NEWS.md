@@ -1,4 +1,4 @@
-# diagols 0.2.1
+# diagols 0.2.2
 
 ## Nuevas funciones
 
@@ -30,6 +30,7 @@
 ## Bug fixes
 
 - `plot_diagnostico_ols()` ahora retorna correctamente el objeto patchwork (antes retornaba NULL, impidiendo usar `p & theme_*()`).
+- Agregar imports faltantes en NAMESPACE para `comparar_modelos()` (`AIC`, `formula`, `model.response`) que impedían que la función se exportara correctamente.
 
 ---
 
