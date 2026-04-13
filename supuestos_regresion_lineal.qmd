@@ -1331,6 +1331,30 @@ influencePlot(modelo)
 
 **Referencias:** @james2023 [Sec. 3.3.3]; @cook1982; @belsley1980.
 
+### Investigar observaciones problemáticas con `augment()`
+
+Los cálculos anteriores (Cook's D, leverage, residuos studentizados) identifican *cuáles* observaciones son problemáticas, pero para investigar *por qué* lo son, necesitas ver esas observaciones junto con sus variables originales. La función `augment()` del paquete `diagols` pega todos los diagnósticos al dataset original y agrega flags booleanos para filtrar directamente:
+
+```{r}
+#| label: augment-ejemplo
+#| message: false
+#| warning: false
+
+# augment() requiere el paquete diagols instalado
+library(diagols)
+dx_aug <- diagols::diagnostico_ols(modelo)
+datos_diagnostico <- augment(dx_aug, datos)
+
+# Ver las observaciones más influyentes con sus variables originales
+datos_diagnostico |>
+  dplyr::filter(.cooksd_flag) |>
+  dplyr::arrange(dplyr::desc(.cooksd)) |>
+  dplyr::select(mpg, weight, year, origin, .cooksd, .hat, .std.resid) |>
+  head(5)
+```
+
+Esto permite responder preguntas como: "¿Las observaciones influyentes son autos particularmente pesados? ¿De un año específico? ¿De un origen particular?" — en vez de mirar solo números de fila sin contexto.
+
 ## Diagnóstico visual completo
 
 `plot(modelo)` genera los 4 gráficos canónicos de diagnóstico:
@@ -2131,6 +2155,20 @@ Reglas prácticas para interpretar `delta_AIC`: un delta < 2 indica modelos esen
 
 Nótese que esta conclusión converge con los diagnósticos de supuestos: el único modelo que pasa especificación (RESET) y homocedasticidad (Breusch-Pagan) es también el que tiene menor AIC. **Los tests y el AIC cuentan la misma historia** — la forma funcional correcta importa más que cualquier corrección post-hoc.
 
+#### Todo en una tabla: `comparar_modelos()`
+
+Todo el análisis anterior — la comparación manual de flags, el cálculo del AIC crudo, la corrección Jacobiana — puede resumirse en una sola llamada con la función `comparar_modelos()` del paquete `diagols`. Esta función corre `diagnostico_ols()` en cada modelo, detecta automáticamente cuáles tienen `log(Y)`, aplica la corrección Jacobiana y presenta todo en un tibble:
+
+```{r}
+#| label: comparar-modelos-diagols
+#| message: false
+#| warning: false
+
+diagols::comparar_modelos(modelo, modelo_quad, modelo_log)
+```
+
+La columna `delta_AIC` identifica el mejor modelo (delta = 0), las columnas de flags muestran qué supuestos falla cada uno, y `n_problemas` resume cuántos problemas tiene. En una sola línea obtienes la misma información que construimos paso a paso en las secciones anteriores.
+
 ::: {.callout-important}
 ## Conclusión: modelo seleccionado
 
@@ -2167,17 +2205,33 @@ El modelo log-log aún rechaza normalidad (Shapiro-Wilk) e independencia (Breusc
 Un modelo que rechaza Shapiro-Wilk con n = 392 pero pasa especificación y homocedasticidad es **más confiable** para inferencia que uno que "pasa" normalidad pero está mal especificado. El objetivo no es "pasar todos los tests" sino entender qué problemas son reales, cuáles son síntomas, y cuáles son irrelevantes en tu contexto.
 
 ::: {.callout-tip}
-## Framework de trabajo
+## Framework de trabajo con `diagols`
 
-Este análisis sigue un flujo estándar que puedes replicar con cualquier modelo:
+Este análisis sigue un flujo estándar que puedes replicar con cualquier modelo usando las funciones del paquete `diagols`:
 
-1. Ajustar el modelo → `lm()`
-2. Ejecutar diagnóstico completo → `diagnostico_ols()`
-3. Identificar problemas **estructurales** (especificación, no síntomas)
-4. Corregir la especificación → transformaciones, términos adicionales
-5. Re-ejecutar `diagnostico_ols()` y comparar
+```r
+library(diagols)
 
-La función no reemplaza el análisis: **lo estructura**.
+# 1. Ajustar el modelo
+modelo <- lm(y ~ x1 + x2, data = datos)
+
+# 2. Diagnóstico completo (imprime semáforo + retorna objeto)
+dx <- diagnostico_ols(modelo)
+
+# 3. Visualizar los 4 gráficos diagnósticos
+plot_diagnostico_ols(dx)
+
+# 4. Investigar observaciones problemáticas
+augment(dx, datos) |> dplyr::filter(.cooksd_flag | .outlier_flag)
+
+# 5. Si hay problemas de especificación, probar correcciones
+modelo_v2 <- lm(log(y) ~ log(x1) + x2, data = datos)
+
+# 6. Comparar modelos (AIC corregido + flags lado a lado)
+comparar_modelos(modelo, modelo_v2)
+```
+
+Las funciones no reemplazan el análisis — **lo estructuran**. El juicio sobre qué corrección aplicar, si un outlier es plausible, o si la heterocedasticidad es severa, sigue siendo tuyo.
 :::
 
 > *En regresión, la mayoría de los problemas no se corrigen con tests — se corrigen con mejores modelos.*
