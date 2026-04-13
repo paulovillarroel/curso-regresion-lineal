@@ -1846,6 +1846,8 @@ flowchart TD
     style R fill:#2d8659,color:#fff
 ```
 
+Este diagrama cubre los problemas que requieren **re-especificación del modelo**. La independencia (Breusch-Godfrey) y la multicolinealidad (VIF) no aparecen porque generalmente no se resuelven transformando variables sino con errores HAC, errores agrupados, o selección de predictores — temas cubiertos en sus secciones respectivas.
+
 ### ¿Qué nos dicen los diagnósticos?
 
 El diagnóstico del modelo original (`mpg ~ weight + year + origin`) revela un patrón claro: **la mayoría de los supuestos fallan simultáneamente**. Esto no es coincidencia — cuando un modelo está mal especificado, los problemas se propagan en cascada:
@@ -2054,7 +2056,7 @@ El término cuadrático centrado (`weight_c + I(weight_c^2)`) eliminó la multic
 El modelo log-log aún rechaza normalidad (Shapiro-Wilk) e independencia (Breusch-Godfrey), pero ninguno compromete la inferencia en este contexto:
 
 - **Normalidad**: con n = 392 observaciones, la inferencia es válida por resultados asintóticos (consistencia de los estimadores y convergencia de la distribución). Además, los errores estándar robustos (HC3) no difieren sustancialmente de los OLS — lo que confirma que la heterocedasticidad residual, si existe, es menor.
-- **Independencia**: el test de Breusch-Godfrey detecta dependencia en el *orden* de los datos. Dado que el dataset `Auto` no tiene estructura temporal ni de panel explícita, este resultado no se interpreta como evidencia relevante de autocorrelación. Si hubiera preocupación por clustering (e.g., autos del mismo fabricante), la solución sería errores agrupados, no una re-especificación.
+- **Independencia**: el test de Breusch-Godfrey detecta dependencia en el *orden* de los datos. El dataset `Auto` está ordenado por año de fabricación (1970–1982), por lo que esta dependencia probablemente refleja **tendencias temporales residuales** no capturadas por el predictor lineal `year` (shocks petroleros, regulaciones CAFE), no autocorrelación serial clásica (ver el callout en la @sec-independencia). Con el modelo log-log, la dependencia residual se reduce pero no desaparece. Si hubiera preocupación por clustering (e.g., autos del mismo fabricante), la solución sería errores agrupados, no una re-especificación.
 
 #### 4. El diagnóstico es iterativo, no binario
 
@@ -2091,6 +2093,7 @@ Antes de ejecutar `lm()`, pregúntate cómo funciona el proceso en la realidad c
 | **Lin-log** (level-log) | $Y = \beta_0 + \beta_1 \log X$ | +1% en $X$ → $+\beta_1 / 100$ unidades en $Y$ |
 | **Log-log** | $\log Y = \beta_0 + \beta_1 \log X$ | +1% en $X$ → $+\beta_1$% en $Y$ (elasticidad) |
 | **Cuadrática** | $Y = \beta_0 + \beta_1 X + \beta_2 X^2$ | Efecto marginal = $\beta_1 + 2\beta_2 X$ (varía según $X$) |
+| **Interacción** | $Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2$ | Efecto de $X_1$ = $\beta_1 + \beta_3 X_2$ (depende de $X_2$) |
 
 A continuación, cada especificación se desarrolla con su explicación, cuándo usarla en contextos de salud, y cómo implementarla en R.
 
@@ -2233,6 +2236,7 @@ El mejor modelo del mundo no sirve si no puedes explicárselo a un referente té
 - **Lin-log:** *"Duplicar el gasto per cápita se asocia con 2.3 años más de esperanza de vida."*
 - **Log-log:** *"Un aumento del 10% en el presupuesto reduce los tiempos de espera en un 5%."*
 - **Cuadrática:** *"El efecto de la edad cambia según qué tan mayor sea el paciente — es mayor en los extremos."*
+- **Interacción:** *"El tratamiento no muestra efecto en pacientes sin diabetes, pero reduce la estadía en 4 días en pacientes con diabetes."*
 
 ::: {.callout-important}
 ## Regla de oro
