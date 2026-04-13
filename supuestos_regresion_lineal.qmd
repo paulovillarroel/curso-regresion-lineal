@@ -58,7 +58,7 @@ Para profundizar en identificación causal, dos recursos complementarios:
 
 ### Referencias generales
 
-@fox2016; @wooldridge2020; @faraway2015; @taubes2010.
+@fox2016; @wooldridge2020; @faraway2015; @taubes2010^[Clifford Henry Taubes, Departamento de Matemáticas de Harvard. No confundir con Gary Taubes, autor de libros sobre nutrición. Estas son notas de clase de probabilidad, estadística y álgebra lineal.].
 
 ## ¿Por qué validar los supuestos? {#sec-por-que}
 
@@ -263,11 +263,28 @@ Detectar una violación es solo el primer paso. Lo que importa es **qué decisi�
 | Supuesto violado | Acción si la violación es leve | Acción si la violación es severa |
 |---|---|---|
 | **Linealidad** | Agregar términos polinómicos o interacciones | Transformar variables ($\log$, $\sqrt{}$) o usar modelos no lineales (GAM, splines) |
-| **Normalidad** | Generalmente ignorable con $n$ grande | Transformar $Y$ (Box-Cox) o usar bootstrap para la inferencia |
+| **Normalidad** | Generalmente ignorable con $n$ grande | Transformar $Y$ (Box-Cox) o usar bootstrap para la inferencia (ver ejemplo abajo) |
 | **Homocedasticidad** | Usar errores estándar robustos (HC3) | Usar Weighted Least Squares (WLS) o modelos de varianza explícita |
 | **Independencia** | Reportar errores HAC (Newey-West) | Usar modelos para datos correlacionados (GLS, modelos mixtos, series de tiempo) |
 | **Multicolinealidad** | Tolerable si el objetivo es predicción | Eliminar predictores redundantes, usar PCA o regularización (Ridge, Lasso) |
 | **Endogeneidad (OVB)** | Agregar variables de control o proxy | Variables instrumentales (IV/2SLS), diseños experimentales, diff-in-diff |
+
+::: {.callout-note}
+## Bootstrap: intervalos de confianza sin asumir normalidad
+
+Cuando la normalidad de los residuos falla y la muestra es pequeña (donde el TCL no alcanza a compensar), el **bootstrap** ofrece una alternativa: re-muestrea los datos miles de veces, reajusta el modelo en cada muestra, y construye intervalos de confianza directamente a partir de la distribución empírica de los coeficientes — sin asumir nada sobre la distribución de los errores.
+
+```r
+# Bootstrap con car::Boot (requiere install.packages("car"))
+library(car)
+boot_result <- Boot(modelo, R = 2000)  # 2000 remuestreos
+summary(boot_result)     # coeficientes bootstrap
+confint(boot_result)     # IC al 95% (sin supuesto de normalidad)
+hist(boot_result)        # distribución empírica de cada coeficiente
+```
+
+Si los intervalos bootstrap difieren sustancialmente de los intervalos OLS estándar (`confint(modelo)`), la no-normalidad está afectando la inferencia y es mejor reportar los intervalos bootstrap.
+:::
 
 ::: {.callout-tip}
 ## Criterio práctico
@@ -432,9 +449,10 @@ par(mfrow = c(1, 1))
 
 ::: {.callout-tip}
 ## Regla práctica
-- Con $n \geq 30$, la aproximación normal suele ser razonable para distribuciones unimodales.
-- Con distribuciones muy asimétricas o con colas pesadas, puede requerirse $n \geq 50$ o más.
+- Con $n \geq 30$, la aproximación normal suele ser razonable para distribuciones unimodales y simétricas.
+- Con distribuciones muy asimétricas o con colas pesadas, puede requerirse $n \geq 50$, $100$ o más. **Esto es especialmente relevante en datos de salud**: costos hospitalarios, días de estadía, tiempos de espera y conteos de eventos (reingresos, infecciones) casi siempre tienen distribuciones con sesgo positivo fuerte. Para estas variables, $n = 30$ no es suficiente para que el TCL "arregle" el problema — y confiar en la regla de $n \geq 30$ sin verificar puede dar falsa seguridad.
 - El TCL **no** aplica si la varianza de los errores es infinita (distribuciones de colas extremadamente pesadas como la Cauchy).
+- **En la duda:** compara los intervalos de confianza OLS con intervalos bootstrap. Si difieren sustancialmente, la aproximación normal aún no es adecuada para tu $n$.
 :::
 
 **Referencias:** @taubes2010 [Cap. 13]; @wasserman2004 [Cap. 5]; @lumley2002.
@@ -698,7 +716,7 @@ ad.test(residuos)
 
 ### Comparación de potencia entre tests
 
-@razali2011 compararon la potencia de estos tests:
+@razali2011 compararon la potencia de estos tests usando simulaciones con distribuciones alternativas simétricas (t de Student, logística, Cauchy) y asimétricas (chi-cuadrado, exponencial, log-normal, gamma), con tamaños de muestra entre 10 y 2000. La potencia depende fuertemente de *contra qué alternativa* se compara — un test puede ser muy potente contra colas pesadas pero débil contra asimetría, o viceversa. La tabla resume los patrones generales:
 
 | Test | Muestras pequeñas | Muestras medianas | Muestras grandes |
 |---|:---:|:---:|:---:|
@@ -706,6 +724,8 @@ ad.test(residuos)
 | Anderson-Darling | ★★ | ★★ | ★★★ |
 | Lilliefors | ★★ | ★★ | ★★ |
 | Jarque-Bera | ★ | ★★ | ★★★ |
+
+Shapiro-Wilk domina en muestras pequeñas y medianas contra la mayoría de alternativas. Jarque-Bera es especialmente potente contra alternativas con asimetría o curtosis anormal (frecuentes en datos de salud), pero pierde potencia con $n$ pequeño. Anderson-Darling es más sensible a desviaciones en las colas de la distribución.
 
 ### Diagnóstico visual: QQ-plot y densidad
 
@@ -881,6 +901,24 @@ coeftest(modelo, vcov = vcovHC(modelo, type = "HC3"))
 
 **Referencias:** @zeileis2004; @long2000.
 
+::: {.callout-note}
+## Alternativa para heterocedasticidad severa: Weighted Least Squares (WLS)
+
+Cuando la heterocedasticidad es severa y los errores robustos HC no bastan (los coeficientes cambian drásticamente al ponderar), se puede usar **mínimos cuadrados ponderados (WLS)**. La idea es dar menos peso a las observaciones con mayor varianza:
+
+```r
+# WLS: ponderando por el inverso de la varianza estimada
+# Paso 1: estimar la varianza de los residuos como función de los fitted values
+wts <- 1 / fitted(modelo)^2
+
+# Paso 2: re-estimar el modelo con pesos
+modelo_wls <- lm(mpg ~ weight + year + origin, data = datos, weights = wts)
+summary(modelo_wls)
+```
+
+WLS es más eficiente que OLS + HC cuando la estructura de la varianza se conoce (o se estima bien). Sin embargo, requiere especificar *cómo* varía la varianza, lo que introduce una decisión adicional. En la práctica, la mayoría de los aplicados prefieren OLS + errores robustos HC3 como primera línea y reservan WLS para casos donde la estructura de varianza es conocida por teoría (e.g., varianza proporcional a un predictor). Para una cobertura completa, ver @wooldridge2020 [Cap. 8].
+:::
+
 ## Independencia de residuos {#sec-independencia}
 
 **Supuesto:** $\text{Cov}(\varepsilon_i, \varepsilon_j) = 0$ para todo $i \neq j$.
@@ -894,6 +932,12 @@ coeftest(modelo, vcov = vcovHC(modelo, type = "HC3"))
 En datos de **corte transversal** con muestreo aleatorio, la independencia se garantiza por **diseño muestral**, no por un test. Los tests de autocorrelación son relevantes cuando los datos tienen ordenamiento temporal, estructura espacial o de cluster.
 
 **Salvedad importante:** Esto asume observaciones i.i.d. (independientes e idénticamente distribuidas). En la práctica, muchos cortes transversales presentan **estructuras jerárquicas** (estudiantes dentro de escuelas, pacientes dentro de hospitales) o **espaciales** (encuestados en la misma región). En estos casos, los errores dentro de un mismo grupo están correlacionados, violando la independencia. La solución estándar es usar **errores estándar agrupados** (*clustered standard errors*) con `vcovCL()` del paquete `sandwich`.
+:::
+
+::: {.callout-warning}
+## Contexto del dataset Auto antes de los tests
+
+El dataset `Auto` está ordenado por año de fabricación (1970–1982), un período con cambios estructurales importantes: regulaciones CAFE de eficiencia, crisis del petróleo de 1973 y 1979, y cambios tecnológicos en motores. Esto significa que los tests de autocorrelación que siguen van a detectar dependencia *real* en el orden de los datos — no es un ejercicio ritual como sería en un corte transversal aleatorio. El predictor `year` captura la tendencia general, pero no los shocks discretos. Tenlo en cuenta al interpretar los resultados.
 :::
 
 ### Durbin-Watson
@@ -945,12 +989,10 @@ bgtest(modelo, order = 4) # útil para datos trimestrales
 
 **Referencias:** @breusch1978; @godfrey1978.
 
-::: {.callout-warning}
-## Interpretación en el dataset Auto
+::: {.callout-note}
+## Resultado: ¿autocorrelación o variables omitidas?
 
-El dataset `Auto` está ordenado por año de fabricación (1970–1982), un período con cambios estructurales importantes: regulaciones CAFE de eficiencia, crisis del petróleo de 1973 y 1979, y cambios tecnológicos en motores. El DW bajo (~1.27) y el BG significativo probablemente reflejan **tendencias temporales no modeladas**, no autocorrelación serial clásica.
-
-Incluir `year` como predictor lineal captura la tendencia general, pero no los cambios discretos (un shock petrolero no es lineal). La "autocorrelación" detectada puede ser un síntoma de **variables omitidas con estructura temporal** — es decir, hay factores que cambian a lo largo del tiempo y que el modelo no incluye. Posibles soluciones serían variables dummy para períodos regulatorios o splines en `year`, aunque para los fines de este ejercicio basta con reconocer esta limitación.
+Como anticipamos, el DW bajo (~1.27) y el BG significativo confirman dependencia en los residuos. Pero como se advirtió antes de los tests, esto probablemente refleja **tendencias temporales no modeladas** (shocks petroleros, regulaciones CAFE), no autocorrelación serial clásica. La "autocorrelación" detectada es un síntoma de **variables omitidas con estructura temporal**. Posibles soluciones serían variables dummy para períodos regulatorios o splines en `year`, aunque para los fines de este ejercicio basta con reconocer esta limitación.
 :::
 
 ### Diagnóstico visual
@@ -1083,33 +1125,12 @@ Cuando $\lambda_{\min} \to 0$ (algún predictor es casi combinación lineal de o
 
 @belsley1980 propusieron además examinar la **descomposición de la proporción de varianza**: no solo mirar el Condition Number global, sino identificar cuáles pares de coeficientes comparten un eigenvalor pequeño, lo que permite localizar cuáles variables están involucradas en la colinealidad. Este diagnóstico más fino está disponible en R con `colldiag()` del paquete `perturb`.
 
-```{r}
-#| label: condition-number
-
-X <- model.matrix(modelo)
-valores_propios <- eigen(t(X) %*% X)$values
-
-cat("Eigenvalores de X'X:\n")
-print(round(valores_propios, 2))
-cat(
-  "\nCondition Number:",
-  round(sqrt(max(valores_propios) / min(valores_propios)), 2),
-  "\n"
-)
-```
-
-::: {.callout-warning}
-## ¿Por qué el CN es tan alto si los VIF son bajos?
-
-Si el CN resulta muy elevado (e.g., > 1000) pero todos los VIF son bajos (< 5), la explicación más probable **no es multicolinealidad real** sino un **artefacto de escala**. El cálculo del CN usa la matriz de diseño completa $X$, que incluye la columna de intercepto (todos 1s). Cuando un predictor opera en escala de miles (como `weight` ≈ 2000–5000) mientras el intercepto vale 1, la disparidad en magnitudes infla enormemente el ratio $\lambda_{\max}/\lambda_{\min}$ sin que exista dependencia lineal real entre predictores.
-
-@belsley1980 [Cap. 3] recomienda **centrar y escalar** las columnas de $X$ (excluyendo el intercepto) antes de calcular el CN para obtener un diagnóstico limpio:
-:::
+Para calcular el CN correctamente, @belsley1980 [Cap. 3] recomienda **centrar y escalar** las columnas de la matriz de diseño (excluyendo el intercepto). Si no se hace, la disparidad de magnitudes entre las variables puede inflar enormemente el CN sin que exista multicolinealidad real:
 
 ```{r}
 #| label: condition-number-scaled
 
-# CN con matriz centrada y escalada (sin intercepto)
+# CN con matriz centrada y escalada (sin intercepto) — el cálculo correcto
 X_scaled <- scale(model.matrix(modelo)[, -1])
 ev_scaled <- eigen(t(X_scaled) %*% X_scaled)$values
 cat(
@@ -1119,7 +1140,28 @@ cat(
 )
 ```
 
-**Regla práctica:** cuando VIF < 5 y CN > 30, compare siempre con el CN escalado. Si el CN escalado cae dentro del rango aceptable, el problema es de escala, no de multicolinealidad.
+::: {.callout-warning}
+## Cuidado con el CN sin escalar: artefacto de escala
+
+Si calculas el CN sobre la matriz de diseño completa (con intercepto y sin escalar), el resultado puede ser engañosamente alto. Veamos qué pasa con nuestro modelo:
+
+```{r}
+#| label: condition-number
+
+X <- model.matrix(modelo)
+valores_propios <- eigen(t(X) %*% X)$values
+
+cat("Eigenvalores de X'X (sin escalar):\n")
+print(round(valores_propios, 2))
+cat(
+  "\nCondition Number (sin escalar):",
+  round(sqrt(max(valores_propios) / min(valores_propios)), 2),
+  "\n"
+)
+```
+
+El CN sin escalar da un valor > 1000, que normalmente indicaría colinealidad severa. Pero los VIF son todos bajos (< 5). ¿Qué ocurre? La columna de intercepto (todos 1s) convive con `weight` (valores ≈ 2000–5000), creando una disparidad de magnitudes que infla el ratio $\lambda_{\max}/\lambda_{\min}$ sin que exista dependencia lineal real. **El CN escalado (calculado arriba) es el diagnóstico correcto.** Siempre que VIF < 5 y CN sin escalar > 30, compare con el CN escalado antes de preocuparse.
+:::
 
 | Condition Number | Interpretación |
 |:---:|---|
