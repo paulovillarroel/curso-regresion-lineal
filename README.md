@@ -74,6 +74,18 @@ p <- plot_diagnostico_ols(dx)           # acepta lm o dx_ols
 p & ggplot2::theme_minimal()            # & aplica tema a los 4 paneles
 ```
 
+### Comparación de modelos con AIC corregido
+
+``` r
+# Compara modelos con distinta variable dependiente (Y vs log(Y))
+# Aplica corrección Jacobiana automáticamente
+m1 <- lm(mpg ~ wt + hp, data = mtcars)
+m2 <- lm(log(mpg) ~ log(wt) + hp, data = mtcars)
+
+comparar_modelos(m1, m2)
+# Retorna tibble con AIC corregido, delta_AIC, flags diagnósticos y n_problemas
+```
+
 ### Estacionalidad
 
 ``` r
@@ -88,6 +100,7 @@ diagnostico_ols(modelo, bg_order = 7)
 | `diagnostico_ols(mod, alpha, bg_order)` | Ejecuta todos los tests, retorna objeto S3 `dx_ols` |
 | `print.dx_ols(x)` | Imprime reporte en consola con semáforo (se ejecuta automáticamente) |
 | `augment(x, data)` | Pega diagnósticos por observación al dataset (estilo broom) |
+| `comparar_modelos(...)` | Compara 2+ modelos: AIC con corrección Jacobiana automática + flags |
 | `plot_diagnostico_ols(mod)` | Panel 2x2: residuos vs fitted, QQ-plot, leverage, Cook's D |
 
 Tests incluidos: Shapiro-Wilk, Lilliefors, Jarque-Bera, Breusch-Pagan, RESET, Breusch-Godfrey, VIF/GVIF, Condition Number, Cook's D, leverage, residuos studentizados, comparación OLS vs HC3.

@@ -219,21 +219,22 @@ aug |> filter(.cooksd_flag) |> select(id, y, x1, .cooksd, .std.resid)
 ```r
 # Si RESET falla, probar correcciones
 modelo2 <- lm(log(y) ~ log(x1) + x2, data = datos)
-dx2 <- diagnostico_ols(modelo2)
 
-# Comparar flags
-data.frame(
-  supuesto = names(dx$flags),
-  original = dx$flags,
-  corregido = dx2$flags
-)
+# comparar_modelos() corre diagnostico_ols() internamente,
+# detecta log(Y) y aplica corrección Jacobiana al AIC
+comp <- comparar_modelos(modelo, modelo2)
+comp
+
+# El mejor modelo tiene delta_AIC = 0 y menor n_problemas
+# Si delta_AIC < 2: modelos equivalentes
+# Si delta_AIC > 10: diferencia sustancial
 ```
 
 ### 5. Visualizar
 
 ```r
-plot_diagnostico_ols(dx)   # modelo original
-plot_diagnostico_ols(dx2)  # modelo corregido
+plot_diagnostico_ols(modelo)   # modelo original
+plot_diagnostico_ols(modelo2)  # modelo corregido
 ```
 
 ## Casos especiales que el agente debe manejar
@@ -258,7 +259,7 @@ Shapiro-Wilk no se ejecuta (limitación del test). Lilliefors y Jarque-Bera sí 
 ## Errores comunes que el agente debe prevenir
 
 1. **Pasar un glm a diagnostico_ols()**: solo acepta `lm`. Para GLM, usar otros paquetes.
-2. **Comparar R² entre modelo lineal y log**: si la variable dependiente cambia (Y vs log(Y)), R² no es comparable. Usar AIC con corrección Jacobiana.
+2. **Comparar R² entre modelo lineal y log**: si la variable dependiente cambia (Y vs log(Y)), R² no es comparable. Usar `comparar_modelos()` que aplica la corrección Jacobiana automáticamente.
 3. **Eliminar outliers mecánicamente**: antes de eliminar, verificar plausibilidad clínica y evaluar impacto con/sin la observación.
 4. **Interpretar BG en corte transversal**: si los datos no tienen orden temporal, un BG significativo no indica autocorrelación real.
 5. **Confundir normalidad de Y con normalidad de errores**: el supuesto es sobre los residuos del modelo ajustado, no sobre la distribución de Y.
