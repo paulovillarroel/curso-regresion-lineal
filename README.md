@@ -38,30 +38,61 @@ El documento está estructurado como un flujo de trabajo completo:
 - Caso de uso: la "cola larga" de las listas de espera y cuándo ir más allá de OLS (GLM).
 - Referencias complementarias: [The Effect](https://theeffectbook.net/) y [Causal Inference in R](https://www.r-causal.org/) con capítulos específicos.
 
-## Paquete `diagols`
+## Paquete `diagols` (v0.2.0)
 
-Las funciones `diagnostico_ols()` y `plot_diagnostico_ols()` están disponibles como paquete de R instalable directamente desde este repositorio:
+Las funciones diagnósticas están disponibles como paquete R instalable directamente desde este repositorio:
 
 ``` r
 pak::pak("paulovillarroel/curso-regresion-lineal")
 ```
 
-Las dependencias (`lmtest`, `car`, `nortest`, `tseries`, `sandwich`) se instalan automáticamente.
+Las dependencias se instalan automáticamente. Si `ggplot2` y `patchwork` están instalados, los gráficos los usan; si no, usa base R.
+
+### Uso básico
 
 ``` r
 library(diagols)
 
 modelo <- lm(mpg ~ wt + hp, data = mtcars)
-diagnostico_ols(modelo)
-plot_diagnostico_ols(modelo)
+dx <- diagnostico_ols(modelo)          # S3 class "dx_ols": calcula todo, imprime semáforo
+dx$resumen                              # tibble con todos los tests
+dx$flags                                # semáforo lógico
+```
 
-# Para datos con estacionalidad semanal:
+### Integración tidy con augment()
+
+``` r
+library(dplyr)
+augment(dx, mtcars) |>                  # pega .cooksd, .hat, .std.resid al dataset
+  filter(.cooksd_flag | .outlier_flag)  # filtra observaciones problemáticas
+```
+
+### Gráficos ggplot2 personalizables
+
+``` r
+p <- plot_diagnostico_ols(dx)           # acepta lm o dx_ols
+p & ggplot2::theme_minimal()            # & aplica tema a los 4 paneles
+```
+
+### Estacionalidad
+
+``` r
+# Para datos diarios con patrón semanal:
 diagnostico_ols(modelo, bg_order = 7)
 ```
 
-`diagnostico_ols()` ejecuta Shapiro-Wilk, Lilliefors, Jarque-Bera, Breusch-Pagan, RESET, Breusch-Godfrey, VIF, Condition Number, Cook's D, leverage y residuos studentizados. Imprime un semáforo en consola y retorna una lista con todos los objetos de cada test.
+### Funciones exportadas
 
-`plot_diagnostico_ols()` genera un panel 2x2: residuos vs fitted, QQ-plot, leverage vs residuos, y distancia de Cook.
+| Función | Descripción |
+|---|---|
+| `diagnostico_ols(mod, alpha, bg_order)` | Ejecuta todos los tests, retorna objeto S3 `dx_ols` |
+| `print.dx_ols(x)` | Imprime reporte en consola con semáforo (se ejecuta automáticamente) |
+| `augment(x, data)` | Pega diagnósticos por observación al dataset (estilo broom) |
+| `plot_diagnostico_ols(mod)` | Panel 2x2: residuos vs fitted, QQ-plot, leverage, Cook's D |
+
+Tests incluidos: Shapiro-Wilk, Lilliefors, Jarque-Bera, Breusch-Pagan, RESET, Breusch-Godfrey, VIF/GVIF, Condition Number, Cook's D, leverage, residuos studentizados, comparación OLS vs HC3.
+
+Para documentación completa dirigida a agentes LLM, ver [AGENTS.md](AGENTS.md). Para changelog, ver [NEWS.md](NEWS.md).
 
 ## Dataset
 
