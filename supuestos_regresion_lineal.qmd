@@ -897,6 +897,15 @@ dwtest(modelo)
 
 Más general que DW: puede testear autocorrelación de **orden $p > 1$** y es válido incluso con variables dependientes rezagadas. Se recomienda sobre Durbin-Watson en la mayoría de los casos.
 
+**¿Qué significa `order`?** El parámetro `order` indica hasta cuántos **rezagos (lags)** hacia atrás buscar autocorrelación. Con `order = 1`, el test pregunta: "¿el residuo de la observación $i$ está correlacionado con el de la observación $i-1$?". Con `order = 7`, pregunta si hay correlación con alguno de los 7 residuos anteriores — útil para datos diarios con estacionalidad semanal (e.g., las admisiones hospitalarias de cada lunes se parecen entre sí). En general:
+
+- `order = 1` — suficiente para detectar dependencia serial simple (AR(1)). Es el default.
+- `order = 4` — datos trimestrales con posible patrón anual.
+- `order = 7` — datos diarios con posible patrón semanal.
+- `order = 12` — datos mensuales con posible estacionalidad anual.
+
+Si tus datos no tienen orden temporal (encuestas, corte transversal), `order = 1` basta y el resultado debe interpretarse con cautela.
+
 ```{r}
 #| label: breusch-godfrey
 
@@ -1198,7 +1207,7 @@ Función que consolida todos los tests en un reporte de consola:
 #| code-fold: true
 #| code-summary: "Ver código de la función"
 
-diagnostico_ols <- function(mod, alpha = 0.05) {
+diagnostico_ols <- function(mod, alpha = 0.05, bg_order = 1) {
   pkgs <- c("lmtest", "car", "sandwich", "nortest", "tseries")
   falta <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
   if (length(falta) > 0) {
@@ -1320,10 +1329,11 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
   )
 
   # 4. Independencia
-  bg <- lmtest::bgtest(mod, order = 1)
+  bg <- lmtest::bgtest(mod, order = bg_order)
   cat("4. INDEPENDENCIA (no autocorrelación)\n")
   cat(
-    "   Breusch-Godfrey (orden 1): LM =",
+    "   Breusch-Godfrey (orden", paste0(bg_order, "):"),
+    "LM =",
     round(bg$statistic, 4),
     "| p =",
     format.pval(bg$p.value, digits = 4),
@@ -1333,12 +1343,16 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
     "   Decisión:",
     ifelse(
       bg$p.value < alpha,
-      "Rechaza H0 → Evidencia de autocorrelación",
+      paste0("Rechaza H0 → Evidencia de autocorrelación (hasta orden ", bg_order, ")"),
       "No rechaza H0 → Compatible con independencia"
     ),
     "\n"
   )
-  cat("   (Nota: relevante solo si los datos tienen orden temporal)\n\n")
+  if (bg_order == 1) {
+    cat("   (Nota: order=1 detecta AR(1). Para estacionalidad, usar bg_order=7, 12, etc.)\n\n")
+  } else {
+    cat("   (Nota: relevante solo si los datos tienen orden temporal)\n\n")
+  }
 
   # 5. Multicolinealidad (con manejo de GVIF y k=1)
   vif_vals <- NULL
