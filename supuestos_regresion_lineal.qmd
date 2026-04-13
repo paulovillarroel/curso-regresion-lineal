@@ -801,6 +801,8 @@ legend(
 ::: {.callout-tip}
 ## Ejemplo clínico: estadía hospitalaria
 Un caso clásico en datos de salud es modelar los **días de estadía hospitalaria** en función de variables como edad, diagnóstico o cantidad de procedimientos. Los pacientes con estadías cortas (1–3 días) tienen poca variabilidad entre sí: una apendicectomía sin complicaciones toma tiempos similares. Pero a medida que la estadía aumenta, la varianza explota: un paciente con 30 días de hospitalización puede tener desde una recuperación complicada pero predecible hasta una cadena de eventos adversos impredecibles. El resultado es un patrón de embudo (fan-shape) perfecto en el gráfico de residuos vs ajustados. En este contexto, usar los errores estándar OLS sin corrección puede llevar a declarar significativos predictores que no lo son — con implicancias directas en decisiones de gestión hospitalaria.
+
+El mismo patrón aparece al modelar **tiempos de espera en listas quirúrgicas u oncológicas**. Si modelas días de espera en función del diagnóstico, la complejidad del procedimiento y la región del establecimiento, verás que los pacientes con esperas cortas (cirugías electivas simples) se agrupan con poca variabilidad, mientras que las esperas largas (pacientes oncológicos con protocolos de neoadyuvancia, pacientes que pierden turno por descompensación) generan una dispersión enorme. Un modelo que declara que "la región del hospital no afecta significativamente los tiempos de espera" puede estar usando errores estándar incorrectos que enmascaran diferencias reales entre la red urbana y la rural. La corrección con HC3 puede revertir esa conclusión.
 :::
 
 ```{r}
@@ -947,6 +949,14 @@ WLS es más eficiente que OLS + HC cuando la estructura de la varianza se conoce
 En datos de **corte transversal** con muestreo aleatorio, la independencia se garantiza por **diseño muestral**, no por un test. Los tests de autocorrelación son relevantes cuando los datos tienen ordenamiento temporal, estructura espacial o de cluster.
 
 **Salvedad importante:** Esto asume observaciones i.i.d. (independientes e idénticamente distribuidas). En la práctica, muchos cortes transversales presentan **estructuras jerárquicas** (estudiantes dentro de escuelas, pacientes dentro de hospitales) o **espaciales** (encuestados en la misma región). En estos casos, los errores dentro de un mismo grupo están correlacionados, violando la independencia. La solución estándar es usar **errores estándar agrupados** (*clustered standard errors*) con `vcovCL()` del paquete `sandwich`.
+:::
+
+::: {.callout-tip}
+## Autocorrelación en datos de gestión hospitalaria
+
+Si modelas **tiempos de atención en urgencia** a lo largo de los días del mes, la autocorrelación es casi inevitable: los días con alta demanda (lunes post-feriado, inicio de brotes respiratorios) generan acumulación que se arrastra a los días siguientes — si hoy colapsó la urgencia, mañana probablemente también. Los residuos del modelo estarán correlacionados porque el sistema de salud tiene **inercia**: la sobrecarga no se resuelve de un día para otro.
+
+Lo mismo ocurre con **reportes epidemiológicos semanales** (casos de IRA, consultas GES): el conteo de esta semana predice el de la próxima porque los brotes tienen dinámica temporal. En estos contextos, el test de Breusch-Godfrey (con `bg_order` ajustado a la frecuencia de los datos) detectará autocorrelación real que debe abordarse con errores HAC o modelando explícitamente la estructura temporal. Un p-value sin corrección HAC podría hacerte creer que una intervención redujo los tiempos de espera cuando en realidad fue una fluctuación estacional.
 :::
 
 ::: {.callout-warning}
@@ -1227,6 +1237,16 @@ En la práctica — especialmente en contextos clínicos y organizacionales — 
 Estos errores se manifiestan en el diagnóstico como outliers o puntos de leverage extremo, y la tentación natural es aplicar una transformación logarítmica o eliminar la observación. Pero si la causa es un error de registro, la solución correcta no es estadística — es **auditar el proceso de captura de datos**. Antes de transformar o eliminar, pregúntate: ¿este valor es biológica o administrativamente plausible? Si la respuesta es no, la prioridad es corregir el dato en la fuente o excluirlo con una justificación documentada, no enmascarar el problema con una transformación.
 
 Esta distinción es particularmente relevante en instituciones de salud, donde la calidad del dato depende de múltiples actores (admisión, enfermería, laboratorio, codificación) y la fragmentación de los sistemas de información es la norma, no la excepción.
+:::
+
+::: {.callout-tip}
+## Outliers en datos agregados: hospitales con comportamiento anómalo
+
+Cuando el análisis no es a nivel de paciente sino a nivel de **establecimiento** (e.g., modelar el promedio de días de estadía por hospital en función del volumen de cirugías, la dotación de camas y la complejidad del case-mix), los outliers adquieren un significado distinto: un hospital con residuo studentizado > 3 no es un "error de digitación" — es un **establecimiento que se comporta de forma anómala** respecto al patrón de la red.
+
+Ese hospital puede tener una estadía promedio mucho mayor de lo esperado por su complejidad (¿problemas de gestión de altas? ¿infecciones intrahospitalarias?), o mucho menor (¿alta precoz inadecuada? ¿derivación de pacientes complejos?). En ambos casos, el outlier es **información valiosa para la gestión**, no ruido a eliminar. Antes de sacarlo del modelo, investiga qué lo hace diferente — ahí puede estar el hallazgo más importante del análisis.
+
+Un punto de **alto leverage** en este contexto sería un hospital con valores inusuales en los predictores: un establecimiento rural muy pequeño con alta complejidad, o un hospital de referencia nacional sin comparables en la red. Estos puntos tienen el poder de "arrastrar" la recta hacia ellos, distorsionando los coeficientes para toda la red. La distancia de Cook te dice si ese efecto es sustantivo.
 :::
 
 ### Puntos de alto leverage (hat values)
