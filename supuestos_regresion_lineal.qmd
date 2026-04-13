@@ -1796,10 +1796,14 @@ La lista completa de elementos disponibles es: `resumen`, `shapiro`, `lilliefors
 ::: {.callout-tip}
 ## Instalar como paquete de R
 
-Si quieres usar `diagnostico_ols()` y `plot_diagnostico_ols()` en tus propios proyectos sin copiar el código, puedes instalarlas directamente como un paquete de R desde el repositorio de este curso:
+Si quieres usar `diagnostico_ols()`, `plot_diagnostico_ols()`, `augment()` y `comparar_modelos()` en tus propios proyectos sin copiar el código, puedes instalarlas directamente como el paquete `diagols` desde el [repositorio de este curso](https://github.com/paulovillarroel/curso-regresion-lineal):
 
 ```r
+# Instalar
 pak::pak("paulovillarroel/curso-regresion-lineal")
+
+# Actualizar a la última versión
+pak::pak("paulovillarroel/curso-regresion-lineal", upgrade = TRUE)
 ```
 
 Las dependencias se instalan automáticamente. Después, en cualquier script o proyecto:
@@ -1808,9 +1812,13 @@ Las dependencias se instalan automáticamente. Después, en cualquier script o p
 library(diagols)
 
 modelo <- lm(y ~ x1 + x2, data = mis_datos)
-dx <- diagnostico_ols(modelo)
-plot_diagnostico_ols(modelo)
+dx <- diagnostico_ols(modelo)             # diagnóstico completo
+plot_diagnostico_ols(dx)                   # panel 2x2
+augment(dx) |> dplyr::filter(.cooksd_flag) # observaciones influyentes
+comparar_modelos(modelo1, modelo2)         # comparación con AIC corregido
 ```
+
+Para documentación completa del paquete, changelog y guía de uso, ver el [repositorio en GitHub](https://github.com/paulovillarroel/curso-regresion-lineal).
 :::
 
 ```{r}
