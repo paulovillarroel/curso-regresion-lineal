@@ -6,4 +6,6 @@
 ^.*\.qmd$
 ^referencias\.bib$
 ^README\.md$
+^AGENTS\.md$
+^NEWS\.md$
 ^\.gitignore$
