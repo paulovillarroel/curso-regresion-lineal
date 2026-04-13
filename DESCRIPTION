@@ -1,6 +1,6 @@
 Package: diagols
 Title: Diagnostico de Supuestos en Regresion Lineal (OLS)
-Version: 0.1.0
+Version: 0.2.0
 Authors@R:
     person("Paulo", "Villarroel", , "paulovillarroel@gmail.com",
            role = c("aut", "cre"))
@@ -11,6 +11,8 @@ Description: Funciones para ejecutar una bateria completa de tests
     (Breusch-Godfrey), multicolinealidad (VIF, Condition Number) e
     influencia (Cook's D, leverage, residuos studentizados), con reporte
     en consola tipo semaforo y comparacion OLS vs errores robustos HC3.
+    Retorna objetos S3 con integracion tidy (tibble, augment) y graficos
+    ggplot2 opcionales.
 License: CC BY 4.0
 URL: https://github.com/paulovillarroel/curso-regresion-lineal
 BugReports: https://github.com/paulovillarroel/curso-regresion-lineal/issues
@@ -22,4 +24,8 @@ Imports:
     lmtest,
     nortest,
     sandwich,
+    tibble,
     tseries
+Suggests:
+    ggplot2,
+    patchwork
