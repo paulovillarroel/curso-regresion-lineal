@@ -900,7 +900,19 @@ plot(modelo, which = 3)
 
 ### Solución: Errores estándar robustos (HC)
 
-Si hay heterocedasticidad, no es necesario abandonar OLS. Se pueden usar **errores estándar robustos**, que recalculan la incertidumbre de los coeficientes teniendo en cuenta que la varianza no es constante. Los coeficientes $\hat{\beta}$ no cambian — lo que cambia son los errores estándar, los p-values y los intervalos de confianza:
+Si hay heterocedasticidad, no es necesario abandonar OLS. Se pueden usar **errores estándar robustos**, que recalculan la incertidumbre de los coeficientes teniendo en cuenta que la varianza no es constante. Los coeficientes $\hat{\beta}$ no cambian — lo que cambia son los errores estándar, los p-values y los intervalos de confianza.
+
+**¿Qué significa "HC"?** Son las siglas de *Heteroscedasticity-Consistent* (consistentes ante heterocedasticidad). La idea es simple: en vez de asumir que todos los errores tienen la misma varianza ($\sigma^2$), se estima una varianza diferente para cada observación a partir de los residuos. Existen varias formas de hacer esta estimación (HC0 a HC4), que difieren en cómo corrigen el sesgo en muestras finitas. **HC3 es la más recomendada** para muestras pequeñas y moderadas porque es la más conservadora — prefiere intervalos de confianza algo más anchos antes que errores estándar artificialmente pequeños.
+
+Primero, veamos los resultados OLS estándar (que asumen varianza constante):
+
+```{r}
+#| label: errores-ols-estandar
+
+summary(modelo)$coefficients
+```
+
+Ahora, los mismos coeficientes pero con errores estándar robustos HC3:
 
 ```{r}
 #| label: errores-robustos
@@ -908,13 +920,20 @@ Si hay heterocedasticidad, no es necesario abandonar OLS. Se pueden usar **error
 coeftest(modelo, vcov = vcovHC(modelo, type = "HC3"))
 ```
 
+**¿Cómo interpretar la comparación?** Mira si los p-values cambian de forma sustantiva. Lo que importa no es si el número exacto cambia (siempre cambiará algo), sino si alguna variable **cruza el umbral de significancia**: era significativa con OLS estándar pero deja de serlo con HC3, o viceversa. Si eso ocurre, la heterocedasticidad está afectando tus conclusiones y la corrección no es opcional. Si los p-values se mueven pero las conclusiones son las mismas, el modelo es robusto a la heterocedasticidad y puedes reportar los resultados con confianza — preferiblemente con los errores HC3.
+
 | Variante | Descripción | Recomendación |
 |---|---|---|
 | HC0 | @white1980, el clásico | Puede subestimar con $n$ pequeño |
 | HC1 | Corrección por g.l.: $n/(n-k)$ | Mejora marginal sobre HC0 |
 | HC2 | Usa leverage ($h_{ii}$) | Mejor para diseños desbalanceados |
-| **HC3** | **Más conservador** | **Recomendado para muestras pequeñas** |
+| **HC3** | **Más conservador** | **Recomendado para uso general** |
 | HC4 | MacKinnon & White | Más robusto con puntos influyentes |
+
+::: {.callout-tip}
+## ¿Cuándo usar HC3 en la práctica?
+Muchos investigadores en econometría y epidemiología usan HC3 **siempre**, independientemente de si Breusch-Pagan rechaza o no. La lógica es que los errores robustos son válidos tanto con homocedasticidad como sin ella (son ligeramente menos eficientes si la varianza es constante, pero nunca son incorrectos), mientras que los errores OLS estándar son válidos **solo** si la varianza es constante. En la duda, HC3 es la opción segura.
+:::
 
 **Referencias:** @zeileis2004; @long2000.
 
