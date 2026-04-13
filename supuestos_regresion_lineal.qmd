@@ -1640,6 +1640,19 @@ diagnostico_ols <- function(mod, alpha = 0.05, bg_order = 1) {
 }
 ```
 
+**Cómo leer esta función:** `diagnostico_ols()` hace dos cosas. Primero, imprime un reporte completo en consola con el resultado de cada test y un semáforo resumen. Segundo, devuelve *invisiblemente* una lista de R con todos los objetos de los tests, para que puedas trabajar con ellos después. Para acceder a los datos tabulares, guarda el resultado en un objeto:
+
+```r
+resultados <- diagnostico_ols(modelo)
+resultados$resumen           # dataframe con todos los tests
+resultados$shapiro           # objeto del test de Shapiro-Wilk
+resultados$flags             # vector lógico del semáforo
+resultados$leverage          # hat values de cada observación
+resultados$robust_se_cambio_pct  # cambio % en SE (OLS vs HC3)
+```
+
+La lista completa de elementos disponibles es: `resumen`, `shapiro`, `lilliefors`, `jarque_bera`, `breusch_pagan`, `reset`, `breusch_godfrey`, `vif`, `condition_number`, `cooks`, `leverage`, `studentized_residuals`, `robust_se_cambio_pct` y `flags`.
+
 ```{r}
 #| label: ejecutar-diagnostico
 
