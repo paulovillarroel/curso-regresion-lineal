@@ -29,11 +29,7 @@ El documento está estructurado como un flujo de trabajo completo:
 Las funciones `diagnostico_ols()` y `plot_diagnostico_ols()` están disponibles como el paquete `diagols`, que puedes instalar directamente desde este repositorio:
 
 ``` r
-# Instalar remotes si no lo tienes
-install.packages("remotes")
-
-# Instalar diagols desde GitHub
-remotes::install_github("paulovillarroel/curso-regresion-lineal")
+pak::pak("paulovillarroel/curso-regresion-lineal")
 ```
 
 Las dependencias (`lmtest`, `car`, `nortest`, `tseries`, `sandwich`) se instalan automáticamente. Una vez instalado:
