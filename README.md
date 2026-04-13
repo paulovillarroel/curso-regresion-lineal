@@ -13,19 +13,30 @@ El documento está estructurado como un flujo de trabajo completo:
 | Supuesto | Tests | Corrección |
 |------------------------|------------------------|------------------------|
 | Linealidad / especificación | RESET de Ramsey, CR-plots | Transformaciones, términos polinomiales |
-| Normalidad de residuos | Shapiro-Wilk, Lilliefors, Jarque-Bera, Anderson-Darling | TCL (n grande), Box-Cox |
-| Homocedasticidad | Breusch-Pagan, White | Errores robustos HC0–HC4 |
+| Normalidad de residuos | Shapiro-Wilk, Lilliefors, Jarque-Bera, Anderson-Darling | TCL (n grande), Box-Cox, bootstrap |
+| Homocedasticidad | Breusch-Pagan, White | Errores robustos HC0–HC4, WLS |
 | Independencia | Durbin-Watson, Breusch-Godfrey | Errores HAC (Newey-West) |
 | Multicolinealidad | VIF, GVIF, Condition Number | Centrado, eliminación de variables |
 | Influencia | Cook's D, leverage, residuos studentizados | Revisión caso a caso |
 
+**Guía de especificación funcional** — 6 formas con fórmula, interpretación, ejemplo clínico y código R:
+
+- Lineal (level-level), Log-lin (log-level), Lin-log (level-log), Log-log, Cuadrática, Interacciones (efectos modificadores).
+- Guía de 3 pasos: teoría del fenómeno → diagnósticos → interpretabilidad para el usuario final.
+- Diagrama de flujo (Mermaid) para troubleshooting de diagnósticos.
+
 **Contenido adicional:**
 
-- Ejemplos aplicados en contextos clínicos y organizacionales (estadía hospitalaria, mortalidad, comorbilidades omitidas).
+- Ejemplos aplicados en gestión sanitaria: listas de espera (heterocedasticidad), tiempos de urgencia (autocorrelación), hospitales con comportamiento anómalo (outliers/leverage), mortalidad posquirúrgica (cuadrática), comorbilidades omitidas (OVB).
 - Guía de lectura de gráficos ACF para detectar estacionalidad en datos temporales.
-- Discusión sobre calidad del dato: cuándo el problema es el proceso de captura, no el modelo.
-- Re-especificación iterativa de modelos con comparación AIC corregida por Jacobiano.
-- Referencia complementaria a [The Effect](https://theeffectbook.net/) para identificación causal.
+- Datos perdidos (NAs) y sesgo de selección: cómo `na.omit` silencioso puede sesgar el análisis.
+- Calidad del dato: cuándo el problema es el proceso de captura, no el modelo.
+- Distinción entre predicción e inferencia: por qué los supuestos importan para p-values pero no necesariamente para predicción.
+- Bootstrap con `car::Boot` para inferencia sin asumir normalidad.
+- WLS (mínimos cuadrados ponderados) para heterocedasticidad severa.
+- Re-especificación iterativa con comparación AIC corregida por Jacobiano.
+- Caso de uso: la "cola larga" de las listas de espera y cuándo ir más allá de OLS (GLM).
+- Referencias complementarias: [The Effect](https://theeffectbook.net/) y [Causal Inference in R](https://www.r-causal.org/) con capítulos específicos.
 
 ## Paquete `diagols`
 
