@@ -41,6 +41,11 @@ jobs:
             any::tseries
             any::sandwich
             any::ISLR2
+            any::tibble
+            any::dplyr
+
+      - name: Install diagols from this repo
+        run: Rscript -e 'install.packages(".", repos = NULL, type = "source")'
 
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2
