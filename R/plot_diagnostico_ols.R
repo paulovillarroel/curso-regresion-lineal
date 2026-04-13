@@ -34,9 +34,10 @@ plot_diagnostico_ols <- function(mod) {
     requireNamespace("patchwork", quietly = TRUE)
 
   if (use_gg) {
-    plot_ggplot(mod)
+    return(plot_ggplot(mod))
   } else {
     plot_base(mod)
+    return(invisible(NULL))
   }
 }
 
