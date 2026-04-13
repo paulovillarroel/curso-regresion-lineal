@@ -36,6 +36,18 @@ Para cada supuesto se presenta el test formal, el diagnóstico visual, las consi
 ::: {.callout-tip}
 ## Regla general
 Los tests formales son orientativos. Con muestras grandes ($n > 100$), tienden a rechazar $H_0$ por desviaciones triviales e irrelevantes en la práctica. **Siempre complementar con diagnósticos visuales.**
+
+Además, los tests de supuestos sirven para **evaluar** un modelo ya definido, no para decidir qué modelo usar. Un test que rechaza no significa automáticamente que debas cambiar tu especificación — la decisión de qué variables incluir debe basarse en el conocimiento del problema y el diseño de investigación, no en p-values de tests diagnósticos.
+:::
+
+::: {.callout-important}
+## Antes de diagnosticar: ¿el modelo incluye las variables correctas?
+
+Este curso se enfoca en una pregunta específica: **dado un modelo ya especificado, ¿puedo confiar en sus resultados estadísticos?** Pero hay una pregunta previa igual de importante: **¿estoy incluyendo las variables correctas en el modelo?**
+
+Si omites una variable relevante que está correlacionada con tus predictores (un *confusor*), o incluyes una variable que no deberías (un *mediador* en el camino causal), los coeficientes estarán sesgados — y ningún test de supuestos lo detectará. Los residuos pueden verse perfectos mientras los coeficientes cuentan una historia equivocada.
+
+Pensándolo con una analogía: diagnosticar supuestos es como revisar que el motor de un auto funciona bien. Pero si te subiste al auto equivocado, de nada sirve que el motor esté perfecto. La identificación causal — decidir qué variables incluir y por qué — es elegir el auto correcto. Para una guía práctica sobre cómo tomar esas decisiones, ver @huntingtonklein2021.
 :::
 
 ### Referencias generales
@@ -477,7 +489,11 @@ summary(modelo)
 
 ## Orden recomendado de diagnóstico {#sec-orden}
 
-El diagnóstico de supuestos no es una checklist que se recorre en cualquier orden. Algunos problemas pueden enmascarar o amplificar otros, por lo que el orden importa:
+El diagnóstico de supuestos no es una checklist que se recorre en cualquier orden. Algunos problemas pueden enmascarar o amplificar otros, por lo que el orden importa.
+
+Pero antes de entrar en esta secuencia, recuerda que existe un **paso previo** que este curso no cubre: la **especificación causal** del modelo — es decir, decidir qué variables incluir basándote en el conocimiento del fenómeno que estudias. ¿Es una variable un confusor que debes controlar? ¿Es un mediador que no deberías incluir? Si este paso se hizo mal, el modelo tendrá endogeneidad (ver @sec-por-que) y ningún diagnóstico de residuos lo revelará. Para una guía sobre cómo tomar estas decisiones, ver @huntingtonklein2021 [Cap. 13].
+
+Asumiendo que la especificación causal es razonable, el orden de diagnóstico estadístico recomendado es:
 
 1. **Linealidad** — Si la forma funcional es incorrecta, todos los demás diagnósticos se basan en residuos distorsionados.
 2. **Outliers / leverage / influencia** — Un punto influyente puede distorsionar los residuos y hacer que otros tests (BP, Shapiro-Wilk) den resultados engañosos.
