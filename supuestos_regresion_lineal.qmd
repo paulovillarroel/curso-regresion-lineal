@@ -488,6 +488,29 @@ summary(modelo)
 ```
 
 
+::: {.callout-warning}
+## Antes de diagnosticar: ¿cuántos datos estás perdiendo?
+
+Cuando ejecutas `lm(Y ~ X1 + X2)`, R aplica por defecto `na.action = na.omit`: **elimina silenciosamente toda fila que tenga al menos un `NA` en cualquiera de las variables del modelo**. No lanza error ni advertencia — simplemente reduce el $n$ sin avisarte.
+
+Si los datos faltantes son aleatorios (*Missing Completely at Random*, MCAR), esta eliminación solo reduce potencia. Pero en datos de salud pública, **la falta de datos rara vez es aleatoria**. Si una base de registros oncológicos tiene un 20% de valores faltantes en la variable "estadificación al diagnóstico" y los hospitales que menos reportan son los rurales o los de menor complejidad, el modelo se ajustará solo sobre la población urbana/de alta complejidad. Los coeficientes, los errores estándar y los p-values serán estadísticamente válidos *para esa subpoblación* — pero no representarán a la población real.
+
+**Recomendación práctica:** Antes de correr cualquier modelo, ejecuta:
+
+```r
+# ¿Cuántas filas pierde tu modelo?
+n_completos <- sum(complete.cases(datos[, c("Y", "X1", "X2")]))
+n_total <- nrow(datos)
+cat("Observaciones completas:", n_completos, "de", n_total,
+    paste0("(", round(100 * (1 - n_completos / n_total), 1), "% perdido)\n"))
+
+# ¿Qué variable tiene más NAs?
+colSums(is.na(datos[, c("Y", "X1", "X2")]))
+```
+
+Si pierdes más del 5–10% de los datos, investiga **por qué** faltan antes de continuar. La calidad del registro institucional condiciona todo lo que sigue: ningún test de supuestos puede corregir un sesgo de selección introducido por datos faltantes no aleatorios.
+:::
+
 ## Orden recomendado de diagnóstico {#sec-orden}
 
 El diagnóstico de supuestos no es una checklist que se recorre en cualquier orden. Algunos problemas pueden enmascarar o amplificar otros, por lo que el orden importa.
@@ -1000,6 +1023,21 @@ vif(modelo)
 :::
 
 **Referencias:** @belsley1980; @obrien2007; @dormann2013.
+
+::: {.callout-tip}
+## Colinealidad natural en datos de salud
+
+En datos clínicos, es común que las variables estén **naturalmente correlacionadas** porque miden aspectos distintos del mismo fenómeno biológico. Ejemplos frecuentes:
+
+- **Peso, IMC y perímetro abdominal** — las tres miden composición corporal desde ángulos distintos.
+- **Presión sistólica y diastólica** — ambas reflejan la función cardiovascular.
+- **Creatinina y TFG estimada** — la segunda se calcula a partir de la primera.
+- **Edad y número de comorbilidades** — correlacionadas porque las enfermedades crónicas se acumulan con el tiempo.
+
+Si incluyes peso *e* IMC en el mismo modelo, el VIF explotará. Pero la solución **no es matemática** (centrar, escalar, aplicar ridge) — **es teórica**: elige la variable que tenga más sentido clínico para tu pregunta de investigación y elimina la redundante. Si investigas el efecto del sobrepeso en la estadía hospitalaria, el IMC es más interpretable que el peso bruto. Si investigas dosis de medicamento ajustada por tamaño corporal, el peso es la variable correcta.
+
+La multicolinealidad entre variables clínicas no es un "problema a resolver" sino una señal de que estás incluyendo información redundante. El VIF te avisa; la decisión es tuya y debe basarse en la pregunta de investigación, no en el número.
+:::
 
 ### Matriz de correlaciones
 
@@ -1771,6 +1809,38 @@ plot_diagnostico_ols(modelo)
 
 ## Re-especificación del modelo: antes vs después
 
+Cuando `diagnostico_ols()` muestra varios tests en rojo, puede ser difícil saber por dónde empezar. El siguiente diagrama resume la lógica de decisión:
+
+```{mermaid}
+%%| fig-cap: "Flujo de decisión para re-especificación de un modelo OLS."
+flowchart TD
+    A["Ejecutar diagnostico_ols()"] --> B{"¿Falla RESET?"}
+    B -- Sí --> C["Revisar CR-plots"]
+    C --> D{"¿Patrón parabólico?"}
+    D -- Sí --> E["Término cuadrático\n(centrar variable)"]
+    D -- No --> F{"¿Relación multiplicativa\no cola larga?"}
+    F -- Sí --> G["Transformación log"]
+    F -- No --> H["Revisar predictores\nomitidos"]
+    B -- No --> I{"¿Falla Breusch-Pagan?"}
+    I -- Sí --> J{"¿Patrón de abanico\nen residuos vs fitted?"}
+    J -- Sí --> G
+    J -- No --> K["Usar errores\nrobustos HC3"]
+    I -- No --> L{"¿Alta influencia\n(Cook's D > 1)?"}
+    L -- Sí --> M{"¿Dato plausible\nclínicamente?"}
+    M -- No --> N["Auditar registro\nen la fuente"]
+    M -- Sí --> O["Evaluar impacto:\n¿cambian conclusiones\nsin esa obs.?"]
+    L -- No --> P{"¿Falla normalidad?"}
+    P -- Sí --> Q{"¿n > 100?"}
+    Q -- Sí --> R["TCL aplica.\nInferencia válida."]
+    Q -- No --> S["Considerar\ntransformación\no bootstrap"]
+    P -- No --> T["Modelo OK"]
+
+    style A fill:#4a86c8,color:#fff
+    style T fill:#2d8659,color:#fff
+    style N fill:#c0392b,color:#fff
+    style R fill:#2d8659,color:#fff
+```
+
 ### ¿Qué nos dicen los diagnósticos?
 
 El diagnóstico del modelo original (`mpg ~ weight + year + origin`) revela un patrón claro: **la mayoría de los supuestos fallan simultáneamente**. Esto no es coincidencia — cuando un modelo está mal especificado, los problemas se propagan en cascada:
@@ -2108,6 +2178,36 @@ summary(modelo_cuad)
 # constante. En la edad promedio, el efecto marginal es beta_1.
 # Si beta_2 > 0, la mortalidad aumenta más rápido en los extremos."
 ```
+
+##### Interacciones ($X_1 \times X_2$): efectos modificadores
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 (X_1 \times X_2) + \varepsilon$$
+
+Todas las especificaciones anteriores asumen que el efecto de cada variable es **independiente** del valor de las demás. Pero en la realidad clínica, el efecto de una variable frecuentemente *depende del contexto* del paciente. Esto se llama **efecto modificador** o **interacción**: el efecto de $X_1$ sobre $Y$ cambia según el nivel de $X_2$.
+
+El coeficiente de interacción $\beta_3$ mide **cuánto cambia el efecto de $X_1$ cuando $X_2$ aumenta en una unidad** (o cuando $X_2$ pasa de 0 a 1, si es binaria). El efecto marginal de $X_1$ ya no es constante: es $\beta_1 + \beta_3 \cdot X_2$.
+
+**Cuándo usarlo en salud:** Cuando sospechas que el efecto de un tratamiento o exposición no es igual para todos los pacientes. Ejemplo: un protocolo de rehabilitación podría no mostrar efecto *en promedio* sobre los días de estadía, pero ser altamente efectivo en pacientes con una comorbilidad específica (diabetes, por ejemplo). Sin la interacción, el modelo promedia el efecto y lo declara no significativo — enmascarando un hallazgo clínicamente relevante.
+
+```r
+# Interacción: el efecto de tratamiento depende de la comorbilidad
+modelo_inter <- lm(dias_estadia ~ tratamiento * diabetes + edad + sexo,
+                   data = datos)
+summary(modelo_inter)
+# R expande tratamiento * diabetes en:
+#   tratamiento + diabetes + tratamiento:diabetes
+#
+# Interpretación:
+#   beta_tratamiento = efecto del tratamiento cuando diabetes = 0
+#   beta_diabetes = efecto de diabetes cuando tratamiento = 0
+#   beta_tratamiento:diabetes = cuánto CAMBIA el efecto del tratamiento
+#                               si el paciente tiene diabetes
+```
+
+::: {.callout-tip}
+## ¿Cómo comunicar una interacción?
+En vez de: *"El tratamiento reduce la estadía en 2 días"*, se reporta: *"El tratamiento no muestra efecto significativo en pacientes sin diabetes ($\beta = -0.3$, p = 0.42), pero reduce la estadía en 4.1 días en pacientes con diabetes ($\beta_{\text{trat}} + \beta_{\text{trat:diab}} = -0.3 + (-3.8) = -4.1$, p < 0.01)"*. Para el clínico, esto es mucho más útil que un promedio general.
+:::
 
 #### Paso 2: ¿Qué dice `diagnostico_ols()`?
 
