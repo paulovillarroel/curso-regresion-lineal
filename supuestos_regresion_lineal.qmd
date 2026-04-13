@@ -1199,7 +1199,7 @@ Función que consolida todos los tests en un reporte de consola:
 #| code-summary: "Ver código de la función"
 
 diagnostico_ols <- function(mod, alpha = 0.05) {
-  pkgs <- c("lmtest", "car", "sandwich")
+  pkgs <- c("lmtest", "car", "sandwich", "nortest", "tseries")
   falta <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
   if (length(falta) > 0) {
     stop(
@@ -1227,6 +1227,8 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
 
   # 1. Normalidad (con guard para n > 5000)
   sw <- NULL
+  lil <- NULL
+  jb <- NULL
   cat("1. NORMALIDAD\n")
   if (n <= 5000) {
     sw <- shapiro.test(res)
@@ -1237,18 +1239,45 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
       format.pval(sw$p.value, digits = 4),
       "\n"
     )
-    cat(
-      "   Decisión:",
-      ifelse(
-        sw$p.value < alpha,
-        "Rechaza H0 → Evidencia de no normalidad",
-        "No rechaza H0 → Compatible con normalidad"
-      ),
-      "\n\n"
-    )
   } else {
-    cat("   Shapiro-Wilk: No aplicable (n > 5000). Usar QQ-plot.\n\n")
+    cat("   Shapiro-Wilk: No aplicable (n > 5000). Usar QQ-plot.\n")
   }
+  lil <- nortest::lillie.test(res)
+  cat(
+    "   Lilliefors (KS corregido): D =",
+    round(lil$statistic, 4),
+    "| p =",
+    format.pval(lil$p.value, digits = 4),
+    "\n"
+  )
+  jb <- tseries::jarque.bera.test(res)
+  cat(
+    "   Jarque-Bera: JB =",
+    round(jb$statistic, 4),
+    "| p =",
+    format.pval(jb$p.value, digits = 4),
+    "\n"
+  )
+  # Decisión basada en mayoría de tests disponibles
+  norm_pvals <- c(
+    if (!is.null(sw)) sw$p.value,
+    lil$p.value,
+    jb$p.value
+  )
+  norm_rechazos <- sum(norm_pvals < alpha)
+  cat(
+    "   Decisión:",
+    ifelse(
+      norm_rechazos >= 2,
+      "Mayoría rechaza H0 → Evidencia de no normalidad",
+      ifelse(
+        norm_rechazos == 1,
+        "Resultado mixto → Revisar QQ-plot",
+        "No rechaza H0 → Compatible con normalidad"
+      )
+    ),
+    "\n\n"
+  )
 
   # 2. Homocedasticidad
   bp <- lmtest::bptest(mod)
@@ -1315,6 +1344,7 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
   vif_vals <- NULL
   max_vif <- NA
   max_name <- NA
+  cn <- NA
   cat("5. MULTICOLINEALIDAD\n")
   if (k < 2) {
     cat("   No aplicable (modelo con un solo predictor).\n\n")
@@ -1336,29 +1366,51 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
       max_name,
       ")\n"
     )
+    # Condition Number (sobre matriz centrada y escalada)
+    X <- model.matrix(mod)
+    X_cs <- scale(X[, -1, drop = FALSE])
+    eig <- eigen(crossprod(X_cs), only.values = TRUE)$values
+    cn <- sqrt(max(eig) / min(eig))
+    cat("   Condition Number (centrado/escalado):", round(cn, 1), "\n")
     cat(
       "   Decisión:",
       ifelse(
-        max_vif > 5,
-        "VIF > 5 → Posible multicolinealidad problemática",
-        "VIF <= 5 → Sin multicolinealidad severa"
+        max_vif > 5 | cn > 30,
+        ifelse(
+          max_vif > 5 & cn > 30,
+          "VIF > 5 y CN > 30 → Multicolinealidad problemática",
+          ifelse(
+            max_vif > 5,
+            "VIF > 5 → Posible multicolinealidad problemática",
+            "CN > 30 → Colinealidad severa (eigenvalores)"
+          )
+        ),
+        "VIF <= 5 y CN <= 30 → Sin multicolinealidad severa"
       ),
       "\n\n"
     )
   }
 
-  # 6. Diagnóstico de influencia
+  # 6. Diagnóstico de influencia (Cook's D + leverage + studentized residuals)
   cd <- cooks.distance(mod)
   umbral_cook <- 4 / n
   influyentes <- sum(cd > umbral_cook, na.rm = TRUE)
   max_cook <- which.max(cd)
+
+  hv <- hatvalues(mod)
+  umbral_lev <- 2 * (k + 1) / n
+  alto_leverage <- sum(hv > umbral_lev, na.rm = TRUE)
+
+  stud_res <- rstudent(mod)
+  outliers_stud <- sum(abs(stud_res) > 3, na.rm = TRUE)
+
   cat("6. DIAGNÓSTICO DE INFLUENCIA\n")
   cat(
-    "   Obs. con Cook's D > 4/n:",
+    "   Cook's D > 4/n:",
     influyentes,
     "de",
     n,
-    "\n"
+    "obs.\n"
   )
   cat(
     "   Más influyente:",
@@ -1368,13 +1420,26 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
     ")\n"
   )
   cat(
+    "   Alto leverage (h > 2(k+1)/n):",
+    alto_leverage,
+    "obs.\n"
+  )
+  cat(
+    "   Outliers (|residuo studentizado| > 3):",
+    outliers_stud,
+    "obs.\n"
+  )
+  cat(
     "   Decisión:",
     ifelse(
       any(cd > 1, na.rm = TRUE),
       "D > 1 → Observación(es) altamente influyente(s)",
       ifelse(
-        influyentes > 0,
-        paste0(influyentes, " obs. superan 4/n → Revisar manualmente"),
+        influyentes > 0 | outliers_stud > 0,
+        paste0(
+          influyentes, " obs. superan Cook 4/n, ",
+          outliers_stud, " outliers → Revisar manualmente"
+        ),
         "Sin observaciones altamente influyentes"
       )
     ),
@@ -1421,12 +1486,13 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
   cat("RESUMEN DE DIAGNÓSTICO\n")
   cat("----------------------------------------------------------------\n")
   flags <- c(
-    "No normalidad" = if (!is.null(sw)) unname(sw$p.value < alpha) else NA,
+    "No normalidad" = if (norm_rechazos >= 2) TRUE else if (norm_rechazos == 1) NA else FALSE,
     "Heterocedasticidad" = unname(bp$p.value < alpha),
     "Mala especificación" = unname(rs$p.value < alpha),
     "Autocorrelación" = unname(bg$p.value < alpha),
-    "Multicolinealidad" = if (!is.na(max_vif)) max_vif > 5 else NA,
-    "Alta influencia" = any(cd > 1, na.rm = TRUE)
+    "Multicolinealidad" = if (!is.na(max_vif)) (max_vif > 5 | cn > 30) else NA,
+    "Alta influencia" = any(cd > 1, na.rm = TRUE),
+    "Outliers" = outliers_stud > 0
   )
   for (nm in names(flags)) {
     estado <- if (is.na(flags[nm])) {
@@ -1445,41 +1511,57 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
   # Dataframe resumen para integración con tidyverse
   resumen <- data.frame(
     supuesto = c(
-      "Normalidad",
+      "Normalidad (SW)",
+      "Normalidad (Lilliefors)",
+      "Normalidad (JB)",
       "Homocedasticidad",
       "Especificación",
       "Independencia",
-      "Multicolinealidad",
-      "Influencia"
+      "Multicolinealidad (VIF)",
+      "Multicolinealidad (CN)",
+      "Influencia (Cook)",
+      "Outliers (stud. res.)",
+      "Alto leverage"
     ),
     test = c(
-      if (!is.null(sw)) "Shapiro-Wilk" else "No aplicable (n > 5000)",
+      if (!is.null(sw)) "Shapiro-Wilk" else "N/A (n > 5000)",
+      "Lilliefors",
+      "Jarque-Bera",
       "Breusch-Pagan",
       "RESET (Ramsey)",
       "Breusch-Godfrey",
-      if (!is.na(max_vif)) {
-        paste0("VIF max: ", max_name)
-      } else {
-        "No aplicable (k=1)"
-      },
-      "Cook's D"
+      if (!is.na(max_vif)) paste0("VIF max: ", max_name) else "N/A (k=1)",
+      if (!is.na(cn)) "Condition Number" else "N/A (k=1)",
+      "Cook's D",
+      "Residuos studentizados",
+      "Hat values"
     ),
     estadistico = round(
       c(
         if (!is.null(sw)) sw$statistic else NA,
+        lil$statistic,
+        jb$statistic,
         bp$statistic,
         rs$statistic,
         bg$statistic,
         max_vif,
-        max(cd, na.rm = TRUE)
+        cn,
+        max(cd, na.rm = TRUE),
+        if (outliers_stud > 0) max(abs(stud_res)) else max(abs(stud_res)),
+        max(hv)
       ),
       4
     ),
     p_value = c(
       if (!is.null(sw)) sw$p.value else NA,
+      lil$p.value,
+      jb$p.value,
       bp$p.value,
       rs$p.value,
       bg$p.value,
+      NA,
+      NA,
+      NA,
       NA,
       NA
     ),
@@ -1489,15 +1571,20 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
       } else {
         "N/A"
       },
+      ifelse(lil$p.value < alpha, "Rechaza H0", "No rechaza H0"),
+      ifelse(jb$p.value < alpha, "Rechaza H0", "No rechaza H0"),
       ifelse(bp$p.value < alpha, "Rechaza H0", "No rechaza H0"),
       ifelse(rs$p.value < alpha, "Rechaza H0", "No rechaza H0"),
       ifelse(bg$p.value < alpha, "Rechaza H0", "No rechaza H0"),
       if (!is.na(max_vif)) ifelse(max_vif > 5, "VIF > 5", "OK") else "N/A",
+      if (!is.na(cn)) ifelse(cn > 30, "CN > 30", "OK") else "N/A",
       ifelse(
         any(cd > 1, na.rm = TRUE),
         "D > 1",
         ifelse(influyentes > 0, "Revisar", "OK")
-      )
+      ),
+      ifelse(outliers_stud > 0, paste0(outliers_stud, " obs."), "OK"),
+      ifelse(alto_leverage > 0, paste0(alto_leverage, " obs."), "OK")
     ),
     stringsAsFactors = FALSE
   )
@@ -1507,11 +1594,16 @@ diagnostico_ols <- function(mod, alpha = 0.05) {
   invisible(list(
     resumen = resumen,
     shapiro = sw,
+    lilliefors = lil,
+    jarque_bera = jb,
     breusch_pagan = bp,
     reset = rs,
     breusch_godfrey = bg,
     vif = vif_vals,
+    condition_number = cn,
     cooks = cd,
+    leverage = hv,
+    studentized_residuals = stud_res,
     robust_se_cambio_pct = cambio_pct,
     flags = flags
   ))
