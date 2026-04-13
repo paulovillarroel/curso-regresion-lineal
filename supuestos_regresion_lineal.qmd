@@ -947,6 +947,22 @@ abline(h = 0, col = "red", lty = 2)
 acf(residuos, main = "ACF de Residuos")
 ```
 
+**¿Cómo leer el gráfico ACF?** Cada barra vertical muestra la correlación entre los residuos y sus propios valores desplazados $k$ posiciones hacia atrás (lag $k$). Las bandas azules horizontales marcan el umbral de significancia: barras que las superan indican autocorrelación significativa en ese rezago. Los patrones a buscar son:
+
+| Patrón en el ACF | Interpretación |
+|---|---|
+| Barra significativa solo en lag 1 | Autocorrelación serial simple (AR(1)) |
+| Barras que decaen gradualmente | Dependencia persistente (común en series temporales) |
+| Spike en lag 7 (datos diarios) | Estacionalidad semanal — e.g., admisiones hospitalarias |
+| Spike en lag 12 (datos mensuales) | Estacionalidad anual — e.g., reportes epidemiológicos |
+| Spikes en lags 7, 14, 21... | Estacionalidad semanal fuerte con armónicos |
+| Todas las barras dentro de las bandas | Sin autocorrelación significativa |
+
+::: {.callout-tip}
+## Detectar estacionalidad en la práctica
+Si trabajas con datos temporales (admisiones diarias, reportes mensuales, listas de espera), el ACF es tu primera herramienta para identificar patrones cíclicos. Un spike significativo en un lag específico te dice *a qué frecuencia* se repite el patrón, y eso determina el `order` que deberías usar en Breusch-Godfrey. Por ejemplo, si el ACF muestra un spike en lag 7, ejecuta `bgtest(modelo, order = 7)` para confirmar formalmente la estacionalidad semanal.
+:::
+
 
 ## Multicolinealidad {#sec-multicolinealidad}
 
