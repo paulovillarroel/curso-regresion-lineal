@@ -43,7 +43,11 @@ El documento está estructurado como un flujo de trabajo completo:
 Las funciones diagnósticas están disponibles como paquete R instalable directamente desde este repositorio:
 
 ``` r
+# Instalar
 pak::pak("paulovillarroel/curso-regresion-lineal")
+
+# Actualizar a la última versión (si ya lo tenías instalado)
+pak::pak("paulovillarroel/curso-regresion-lineal", upgrade = TRUE)
 ```
 
 Las dependencias se instalan automáticamente. Si `ggplot2` y `patchwork` están instalados, los gráficos los usan; si no, usa base R.
