@@ -11,7 +11,7 @@ El documento está estructurado como un flujo de trabajo completo:
 **Diagnóstico de los 6 supuestos clásicos:**
 
 | Supuesto | Tests | Corrección |
-|---|---|---|
+|------------------------|------------------------|------------------------|
 | Linealidad / especificación | RESET de Ramsey, CR-plots | Transformaciones, términos polinomiales |
 | Normalidad de residuos | Shapiro-Wilk, Lilliefors, Jarque-Bera, Anderson-Darling | TCL (n grande), Box-Cox |
 | Homocedasticidad | Breusch-Pagan, White | Errores robustos HC0–HC4 |
@@ -21,8 +21,30 @@ El documento está estructurado como un flujo de trabajo completo:
 
 **Funciones reutilizables:**
 
-- `diagnostico_ols(mod)` — ejecuta todos los tests, imprime semáforo de resultados, retorna dataframe resumen y objetos de cada test.
-- `plot_diagnostico_ols(mod)` — panel 2x2 con residuos vs fitted, QQ-plot, leverage y Cook's distance.
+-   `diagnostico_ols(mod)` — ejecuta todos los tests, imprime semáforo de resultados, retorna dataframe resumen y objetos de cada test.
+-   `plot_diagnostico_ols(mod)` — panel 2x2 con residuos vs fitted, QQ-plot, leverage y Cook's distance.
+
+### Instalar las funciones como paquete de R
+
+Las funciones `diagnostico_ols()` y `plot_diagnostico_ols()` están disponibles como el paquete `diagols`, que puedes instalar directamente desde este repositorio:
+
+``` r
+# Instalar remotes si no lo tienes
+install.packages("remotes")
+
+# Instalar diagols desde GitHub
+remotes::install_github("paulovillarroel/curso-regresion-lineal")
+```
+
+Las dependencias (`lmtest`, `car`, `nortest`, `tseries`, `sandwich`) se instalan automáticamente. Una vez instalado:
+
+``` r
+library(diagols)
+
+modelo <- lm(mpg ~ wt + hp, data = mtcars)
+diagnostico_ols(modelo)
+plot_diagnostico_ols(modelo)
+```
 
 ## Dataset
 
@@ -30,18 +52,18 @@ Usa el dataset `Auto` del paquete `ISLR2` (392 automóviles, 1970–1982).
 
 ## Configuración del entorno
 
-Para tener R, Quarto y las herramientas necesarias correctamente instaladas y configuradas, se recomienda seguir la guía de configuración de entorno de desarrollo: [https://paulovillarroel.github.io/configuracion-entorno/](https://paulovillarroel.github.io/configuracion-entorno/)
+Para tener R, Quarto y las herramientas necesarias correctamente instaladas y configuradas, se recomienda seguir la guía de configuración de entorno de desarrollo: <https://paulovillarroel.github.io/configuracion-entorno/>
 
 ### Requisitos mínimos
 
-- [R](https://cran.r-project.org/) (>= 4.1)
-- [Quarto CLI](https://github.com/quarto-dev/quarto-cli) (>= 1.3) — necesario para renderizar el documento desde terminal. [Instrucciones de instalación](https://quarto.org/docs/get-started/)
+-   [R](https://cran.r-project.org/) (\>= 4.1)
+-   [Quarto CLI](https://github.com/quarto-dev/quarto-cli) (\>= 1.3) — necesario para renderizar el documento desde terminal. [Instrucciones de instalación](https://quarto.org/docs/get-started/)
 
 ### Paquetes de R
 
 Se usa [pak](https://pak.r-lib.org/) para instalar dependencias (más rápido y con mejor manejo de versiones que `install.packages()`):
 
-```r
+``` r
 # Instalar pak si no lo tienes
 install.packages("pak")
 
@@ -51,7 +73,7 @@ pak::pak(c("lmtest", "car", "nortest", "tseries", "sandwich", "ISLR2"))
 
 ## Instalación local
 
-```bash
+``` bash
 # Clonar el repositorio
 git clone https://github.com/<tu-usuario>/curso-regresion-lineal.git
 cd curso-regresion-lineal

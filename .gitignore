@@ -11,5 +11,9 @@ _site/
 # OS
 .DS_Store
 
+# R package build artifacts
+*.tar.gz
+*.Rcheck/
+
 /.quarto/
 **/*.quarto_ipynb

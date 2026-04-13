@@ -1653,6 +1653,30 @@ resultados$robust_se_cambio_pct  # cambio % en SE (OLS vs HC3)
 
 La lista completa de elementos disponibles es: `resumen`, `shapiro`, `lilliefors`, `jarque_bera`, `breusch_pagan`, `reset`, `breusch_godfrey`, `vif`, `condition_number`, `cooks`, `leverage`, `studentized_residuals`, `robust_se_cambio_pct` y `flags`.
 
+::: {.callout-tip}
+## Instalar como paquete de R
+
+Si quieres usar `diagnostico_ols()` y `plot_diagnostico_ols()` en tus propios proyectos sin copiar el código, puedes instalarlas directamente como un paquete de R desde el repositorio de este curso:
+
+```r
+# Instalar remotes si no lo tienes
+install.packages("remotes")
+
+# Instalar el paquete diagols
+remotes::install_github("paulovillarroel/curso-regresion-lineal")
+```
+
+Las dependencias se instalan automáticamente. Después, en cualquier script o proyecto:
+
+```r
+library(diagols)
+
+modelo <- lm(y ~ x1 + x2, data = mis_datos)
+dx <- diagnostico_ols(modelo)
+plot_diagnostico_ols(modelo)
+```
+:::
+
 ```{r}
 #| label: ejecutar-diagnostico
 

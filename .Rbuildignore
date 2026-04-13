@@ -1,0 +1,9 @@
+^\.github$
+^\.quarto$
+^\.claude$
+^_quarto\.yml$
+^_site$
+^.*\.qmd$
+^referencias\.bib$
+^README\.md$
+^\.gitignore$

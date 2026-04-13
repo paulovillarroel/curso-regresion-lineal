@@ -1,0 +1,25 @@
+Package: diagols
+Title: Diagnostico de Supuestos en Regresion Lineal (OLS)
+Version: 0.1.0
+Authors@R:
+    person("Paulo", "Villarroel", , "paulovillarroel@gmail.com",
+           role = c("aut", "cre"))
+Description: Funciones para ejecutar una bateria completa de tests
+    diagnosticos sobre modelos de regresion lineal (OLS). Incluye tests de
+    normalidad (Shapiro-Wilk, Lilliefors, Jarque-Bera), homocedasticidad
+    (Breusch-Pagan), especificacion (RESET), independencia
+    (Breusch-Godfrey), multicolinealidad (VIF, Condition Number) e
+    influencia (Cook's D, leverage, residuos studentizados), con reporte
+    en consola tipo semaforo y comparacion OLS vs errores robustos HC3.
+License: CC BY 4.0
+URL: https://github.com/paulovillarroel/curso-regresion-lineal
+BugReports: https://github.com/paulovillarroel/curso-regresion-lineal/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports:
+    car,
+    lmtest,
+    nortest,
+    sandwich,
+    tseries
